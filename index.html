@@ -182,39 +182,45 @@
             { id: 6, name: "Manutenzione Caldaia", amount: 110, frequency: "Annuale", startDate: "2026-09-30" }
         ];
 
-        let expenses = JSON.parse(localStorage.getItem('expenses_pro_v7')) || defaultExpenses;
-        let currentSavings = parseFloat(localStorage.getItem('current_savings_v7')) || 0;
+        let expenses = JSON.parse(localStorage.getItem('expenses_pro_v8')) || defaultExpenses;
+        let currentSavings = parseFloat(localStorage.getItem('current_savings_v8')) || 0;
         document.getElementById('currentSavings').value = currentSavings;
 
         const freqMonths = { "Mensile": 1, "Bimestrale": 2, "Trimestrale": 3, "Semestrale": 6, "Annuale": 12 };
 
         function calculateMetrics(item) {
-            const start = new Date(item.startDate);
+            let startDateObj = new Date(item.startDate);
             const today = new Date();
             today.setHours(0,0,0,0);
 
-            let nextDeadline = new Date(start);
             const monthsToAdd = freqMonths[item.frequency] || 1;
 
-            let prevDeadline = new Date(nextDeadline);
-            while (nextDeadline <= today) {
-                prevDeadline = new Date(nextDeadline);
-                nextDeadline.setMonth(nextDeadline.getMonth() + monthsToAdd);
+            let deadlineObj = new Date(startDateObj);
+            deadlineObj.setMonth(deadlineObj.getMonth() + monthsToAdd);
+
+            // Se la scadenza è nel passato, facciamo avanzare il ciclo finché la scadenza è nel futuro o a oggi
+            while (deadlineObj <= today) {
+                startDateObj.setMonth(startDateObj.getMonth() + monthsToAdd);
+                deadlineObj.setMonth(deadlineObj.getMonth() + monthsToAdd);
             }
 
-            const totalPeriodDays = Math.max(1, Math.round((nextDeadline - prevDeadline) / (1000 * 60 * 60 * 24)));
-            const elapsedDays = Math.max(0, Math.round((today - prevDeadline) / (1000 * 60 * 60 * 24)));
+            const activeStartStr = startDateObj.toISOString().split('T')[0];
+            const nextDeadlineStr = deadlineObj.toISOString().split('T')[0];
+
+            const totalPeriodDays = Math.max(1, Math.round((deadlineObj - startDateObj) / (1000 * 60 * 60 * 24)));
+            const elapsedDays = Math.max(0, Math.round((today - startDateObj) / (1000 * 60 * 60 * 24)));
             
             const targetTodayItem = Math.min(item.amount, (item.amount * elapsedDays) / totalPeriodDays);
             
             const monthlyQuota = item.amount / monthsToAdd;
             const dailyQuota = monthlyQuota / 30.5;
 
-            const diffTime = nextDeadline - today;
+            const diffTime = deadlineObj - today;
             const daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
 
             return {
-                nextDeadlineStr: nextDeadline.toISOString().split('T')[0],
+                activeStartStr,
+                nextDeadlineStr,
                 daysLeft,
                 dailyQuota,
                 monthlyQuota,
@@ -224,7 +230,7 @@
 
         function updateSavingsDirect(val) {
             currentSavings = parseFloat(val) || 0;
-            localStorage.setItem('current_savings_v7', currentSavings);
+            localStorage.setItem('current_savings_v8', currentSavings);
             renderApp();
         }
 
@@ -238,7 +244,7 @@
             currentSavings += val;
             document.getElementById('currentSavings').value = currentSavings;
             input.value = '';
-            localStorage.setItem('current_savings_v7', currentSavings);
+            localStorage.setItem('current_savings_v8', currentSavings);
             renderApp();
         }
 
@@ -249,7 +255,7 @@
             if (confirm(`Vuoi registrare il pagamento di "${item.name}" per ${item.amount.toFixed(2)} €?\n\nQuesto scalerà la cifra dai risparmi e rinnoverà la scadenza al prossimo ciclo.`)) {
                 currentSavings = Math.max(0, currentSavings - item.amount);
                 document.getElementById('currentSavings').value = currentSavings;
-                localStorage.setItem('current_savings_v7', currentSavings);
+                localStorage.setItem('current_savings_v8', currentSavings);
                 expenses[index].startDate = metrics.nextDeadlineStr;
                 renderApp();
             }
@@ -285,8 +291,8 @@
                             expenses = parsed.expenses;
                             currentSavings = typeof parsed.currentSavings === 'number' ? parsed.currentSavings : 0;
                             document.getElementById('currentSavings').value = currentSavings;
-                            localStorage.setItem('expenses_pro_v7', JSON.stringify(expenses));
-                            localStorage.setItem('current_savings_v7', currentSavings);
+                            localStorage.setItem('expenses_pro_v8', JSON.stringify(expenses));
+                            localStorage.setItem('current_savings_v8', currentSavings);
                             renderApp();
                             alert("Backup importato con successo!");
                         } else {
@@ -330,7 +336,7 @@
                     ? '<span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">COPERTO</span>'
                     : '<span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">SCOPERTO</span>';
 
-                const startDateFormatted = item.startDate ? item.startDate.split('-').reverse().join('/') : '-';
+                const startDateFormatted = metrics.activeStartStr.split('-').reverse().join('/');
                 const nextDeadlineFormatted = metrics.nextDeadlineStr.split('-').reverse().join('/');
 
                 const row = document.createElement('tr');
@@ -382,7 +388,7 @@
                 globalText.innerText = `Disavanzo (${diffGlobal.toFixed(2)} €)`;
             }
 
-            localStorage.setItem('expenses_pro_v7', JSON.stringify(expenses));
+            localStorage.setItem('expenses_pro_v8', JSON.stringify(expenses));
         }
 
         function openModal(index = -1) {
