@@ -113,17 +113,18 @@
                 <span class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-3 py-1 rounded-full">Aggiornato in tempo reale</span>
             </div>
             <div class="overflow-x-auto [-webkit-overflow-scrolling:touch]">
-                <table class="w-full text-left border-collapse min-w-[700px]">
+                <table class="w-full text-left border-collapse min-w-[900px]">
                     <thead>
                         <tr class="bg-slate-50 text-slate-400 uppercase text-xs tracking-wider border-b border-slate-100">
-                            <th class="py-3 px-4 sm:px-6 font-semibold">Spesa</th>
-                            <th class="py-3 px-4 sm:px-6 font-semibold">Importo</th>
-                            <th class="py-3 px-4 sm:px-6 font-semibold">Frequenza</th>
-                            <th class="py-3 px-4 sm:px-6 font-semibold">Scadenza</th>
-                            <th class="py-3 px-4 sm:px-6 font-semibold">Mancanti</th>
-                            <th class="py-3 px-4 sm:px-6 font-semibold">Quota/G</th>
-                            <th class="py-3 px-4 sm:px-6 font-semibold">Stato</th>
-                            <th class="py-3 px-4 sm:px-6 font-semibold text-center">Azioni</th>
+                            <th class="py-3 px-3 font-semibold">Spesa</th>
+                            <th class="py-3 px-3 font-semibold">Importo</th>
+                            <th class="py-3 px-3 font-semibold">Frequenza</th>
+                            <th class="py-3 px-3 font-semibold">Data Inizio</th>
+                            <th class="py-3 px-3 font-semibold">Prossima Scadenza</th>
+                            <th class="py-3 px-3 font-semibold">Mancanti</th>
+                            <th class="py-3 px-3 font-semibold">Quota/G</th>
+                            <th class="py-3 px-3 font-semibold">Stato</th>
+                            <th class="py-3 px-3 font-semibold text-center">Azioni</th>
                         </tr>
                     </thead>
                     <tbody id="expenseTableBody" class="divide-y divide-slate-100 text-sm">
@@ -181,8 +182,8 @@
             { id: 6, name: "Manutenzione Caldaia", amount: 110, frequency: "Annuale", startDate: "2026-09-30" }
         ];
 
-        let expenses = JSON.parse(localStorage.getItem('expenses_pro_v5')) || defaultExpenses;
-        let currentSavings = parseFloat(localStorage.getItem('current_savings_v5')) || 0;
+        let expenses = JSON.parse(localStorage.getItem('expenses_pro_v7')) || defaultExpenses;
+        let currentSavings = parseFloat(localStorage.getItem('current_savings_v7')) || 0;
         document.getElementById('currentSavings').value = currentSavings;
 
         const freqMonths = { "Mensile": 1, "Bimestrale": 2, "Trimestrale": 3, "Semestrale": 6, "Annuale": 12 };
@@ -223,7 +224,7 @@
 
         function updateSavingsDirect(val) {
             currentSavings = parseFloat(val) || 0;
-            localStorage.setItem('current_savings_v5', currentSavings);
+            localStorage.setItem('current_savings_v7', currentSavings);
             renderApp();
         }
 
@@ -237,7 +238,7 @@
             currentSavings += val;
             document.getElementById('currentSavings').value = currentSavings;
             input.value = '';
-            localStorage.setItem('current_savings_v5', currentSavings);
+            localStorage.setItem('current_savings_v7', currentSavings);
             renderApp();
         }
 
@@ -248,21 +249,29 @@
             if (confirm(`Vuoi registrare il pagamento di "${item.name}" per ${item.amount.toFixed(2)} €?\n\nQuesto scalerà la cifra dai risparmi e rinnoverà la scadenza al prossimo ciclo.`)) {
                 currentSavings = Math.max(0, currentSavings - item.amount);
                 document.getElementById('currentSavings').value = currentSavings;
-                localStorage.setItem('current_savings_v5', currentSavings);
+                localStorage.setItem('current_savings_v7', currentSavings);
                 expenses[index].startDate = metrics.nextDeadlineStr;
                 renderApp();
             }
         }
 
+        // Funzione Esportazione con supporto nativo Mobile / iOS Blob
         function exportBackup() {
             const backupData = { expenses, currentSavings };
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+            const dataStr = JSON.stringify(backupData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
             const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", `backup_piano_${new Date().toISOString().split('T')[0]}.json`);
+            downloadAnchor.href = url;
+            downloadAnchor.download = `backup_piano_${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
-            downloadAnchor.remove();
+            
+            setTimeout(() => {
+                document.body.removeChild(downloadAnchor);
+                URL.revokeObjectURL(url);
+            }, 100);
         }
 
         function importBackup(event) {
@@ -276,8 +285,8 @@
                             expenses = parsed.expenses;
                             currentSavings = typeof parsed.currentSavings === 'number' ? parsed.currentSavings : 0;
                             document.getElementById('currentSavings').value = currentSavings;
-                            localStorage.setItem('expenses_pro_v5', JSON.stringify(expenses));
-                            localStorage.setItem('current_savings_v5', currentSavings);
+                            localStorage.setItem('expenses_pro_v7', JSON.stringify(expenses));
+                            localStorage.setItem('current_savings_v7', currentSavings);
                             renderApp();
                             alert("Backup importato con successo!");
                         } else {
@@ -299,7 +308,7 @@
             let totalDailySum = 0;
             let totalMonthlySum = 0;
             let totalTargetToday = 0;
-            let runningTargetSum = 0;
+            let runningFullAmountSum = 0;
 
             const processedItems = expenses.map((item) => {
                 const metrics = calculateMetrics(item);
@@ -310,8 +319,8 @@
             });
 
             processedItems.forEach(({ item, metrics }, index) => {
-                runningTargetSum += metrics.targetTodayItem;
-                const isCovered = currentSavings >= runningTargetSum;
+                runningFullAmountSum += item.amount;
+                const isCovered = currentSavings >= runningFullAmountSum;
 
                 let badgeExpiry = "bg-emerald-50 text-emerald-700 border-emerald-100";
                 if (metrics.daysLeft <= 3) badgeExpiry = "bg-rose-50 text-rose-700 border-rose-100 font-bold animate-pulse";
@@ -321,21 +330,25 @@
                     ? '<span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">COPERTO</span>'
                     : '<span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">SCOPERTO</span>';
 
+                const startDateFormatted = item.startDate ? item.startDate.split('-').reverse().join('/') : '-';
+                const nextDeadlineFormatted = metrics.nextDeadlineStr.split('-').reverse().join('/');
+
                 const row = document.createElement('tr');
                 row.className = "hover:bg-slate-50/80 transition";
                 row.innerHTML = `
-                    <td class="py-3 px-4 sm:px-6 font-semibold text-slate-800">${item.name}</td>
-                    <td class="py-3 px-4 sm:px-6 font-medium text-slate-600">${Number(item.amount).toFixed(2)} €</td>
-                    <td class="py-3 px-4 sm:px-6 text-slate-500">${item.frequency}</td>
-                    <td class="py-3 px-4 sm:px-6 text-slate-600">${metrics.nextDeadlineStr.split('-').reverse().join('/')}</td>
-                    <td class="py-3 px-4 sm:px-6">
+                    <td class="py-3 px-3 font-semibold text-slate-800">${item.name}</td>
+                    <td class="py-3 px-3 font-medium text-slate-600">${Number(item.amount).toFixed(2)} €</td>
+                    <td class="py-3 px-3 text-slate-500">${item.frequency}</td>
+                    <td class="py-3 px-3 text-slate-600">${startDateFormatted}</td>
+                    <td class="py-3 px-3 text-slate-600 font-medium">${nextDeadlineFormatted}</td>
+                    <td class="py-3 px-3">
                         <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border ${badgeExpiry}">
                             ${metrics.daysLeft}g
                         </span>
                     </td>
-                    <td class="py-3 px-4 sm:px-6 font-bold text-indigo-600">${metrics.dailyQuota.toFixed(2)} €</td>
-                    <td class="py-3 px-4 sm:px-6">${badgeCover}</td>
-                    <td class="py-3 px-4 sm:px-6 text-center space-x-1 whitespace-nowrap">
+                    <td class="py-3 px-3 font-bold text-indigo-600">${metrics.dailyQuota.toFixed(2)} €</td>
+                    <td class="py-3 px-3">${badgeCover}</td>
+                    <td class="py-3 px-3 text-center space-x-1 whitespace-nowrap">
                         <button onclick="payExpense(${index})" class="px-2 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold text-xs transition inline-flex items-center gap-1" title="Paga">
                             <i class="fa-solid fa-check"></i> Paga
                         </button>
@@ -369,7 +382,7 @@
                 globalText.innerText = `Disavanzo (${diffGlobal.toFixed(2)} €)`;
             }
 
-            localStorage.setItem('expenses_pro_v5', JSON.stringify(expenses));
+            localStorage.setItem('expenses_pro_v7', JSON.stringify(expenses));
         }
 
         function openModal(index = -1) {
