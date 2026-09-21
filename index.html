@@ -13,10 +13,7 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Evita lo zoom automatico su iOS e migliora il touch */
-        input, select, button {
-            font-size: 16px !important;
-        }
+        input, select, button { font-size: 16px !important; }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen pb-12">
@@ -32,6 +29,9 @@
             </div>
             <!-- Pulsanti Azione Header -->
             <div class="flex items-center gap-2 flex-wrap justify-center w-full sm:w-auto">
+                <button onclick="openTelegramModal()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5 text-xs sm:text-sm" title="Configura Telegram">
+                    <i class="fa-brands fa-telegram"></i> Telegram
+                </button>
                 <button onclick="exportBackup()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5 text-xs sm:text-sm" title="Esporta Backup">
                     <i class="fa-solid fa-download"></i> Esporta
                 </button>
@@ -171,6 +171,33 @@
         </div>
     </div>
 
+    <!-- Modal Configurazione Telegram -->
+    <div id="telegramModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative">
+            <h3 class="text-xl font-bold text-slate-800 mb-2 flex items-center gap-2">
+                <i class="fa-brands fa-telegram text-sky-600"></i> Notifiche Telegram
+            </h3>
+            <p class="text-xs text-slate-500 mb-4">Ricevi promemoria automatici il giorno prima delle scadenze e il riepilogo della quota giornaliera.</p>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Bot Token</label>
+                    <input type="text" id="tgToken" placeholder="es. 123456789:ABCdef..." class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Chat ID</label>
+                    <input type="text" id="tgChatId" placeholder="es. 987654321" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
+                </div>
+                <div class="flex justify-between items-center pt-2">
+                    <button type="button" onclick="sendTestTelegram()" class="px-4 py-2 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 font-semibold text-xs transition">Invia Test</button>
+                    <div class="space-x-2">
+                        <button type="button" onclick="closeTelegramModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium text-xs transition">Annulla</button>
+                        <button type="button" onclick="saveTelegramSettings()" class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-medium text-xs shadow transition">Salva</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Script Logica -->
     <script>
         const defaultExpenses = [
@@ -182,9 +209,11 @@
             { id: 6, name: "Manutenzione Caldaia", amount: 110, frequency: "Annuale", startDate: "2026-09-30" }
         ];
 
-        let expenses = JSON.parse(localStorage.getItem('expenses_pro_v8')) || defaultExpenses;
-        let currentSavings = parseFloat(localStorage.getItem('current_savings_v8')) || 0;
+        let expenses = JSON.parse(localStorage.getItem('expenses_pro_v9')) || defaultExpenses;
+        let currentSavings = parseFloat(localStorage.getItem('current_savings_v9')) || 0;
         document.getElementById('currentSavings').value = currentSavings;
+
+        let tgSettings = JSON.parse(localStorage.getItem('telegram_settings_v9')) || { token: '', chatId: '' };
 
         const freqMonths = { "Mensile": 1, "Bimestrale": 2, "Trimestrale": 3, "Semestrale": 6, "Annuale": 12 };
 
@@ -198,7 +227,6 @@
             let deadlineObj = new Date(startDateObj);
             deadlineObj.setMonth(deadlineObj.getMonth() + monthsToAdd);
 
-            // Se la scadenza è nel passato, facciamo avanzare il ciclo finché la scadenza è nel futuro o a oggi
             while (deadlineObj <= today) {
                 startDateObj.setMonth(startDateObj.getMonth() + monthsToAdd);
                 deadlineObj.setMonth(deadlineObj.getMonth() + monthsToAdd);
@@ -230,7 +258,7 @@
 
         function updateSavingsDirect(val) {
             currentSavings = parseFloat(val) || 0;
-            localStorage.setItem('current_savings_v8', currentSavings);
+            localStorage.setItem('current_savings_v9', currentSavings);
             renderApp();
         }
 
@@ -244,7 +272,7 @@
             currentSavings += val;
             document.getElementById('currentSavings').value = currentSavings;
             input.value = '';
-            localStorage.setItem('current_savings_v8', currentSavings);
+            localStorage.setItem('current_savings_v9', currentSavings);
             renderApp();
         }
 
@@ -255,25 +283,97 @@
             if (confirm(`Vuoi registrare il pagamento di "${item.name}" per ${item.amount.toFixed(2)} €?\n\nQuesto scalerà la cifra dai risparmi e rinnoverà la scadenza al prossimo ciclo.`)) {
                 currentSavings = Math.max(0, currentSavings - item.amount);
                 document.getElementById('currentSavings').value = currentSavings;
-                localStorage.setItem('current_savings_v8', currentSavings);
+                localStorage.setItem('current_savings_v9', currentSavings);
                 expenses[index].startDate = metrics.nextDeadlineStr;
                 renderApp();
             }
         }
 
-        // Funzione Esportazione con supporto nativo Mobile / iOS Blob
+        // Gestione Telegram UI & API
+        function openTelegramModal() {
+            document.getElementById('tgToken').value = tgSettings.token || '';
+            document.getElementById('tgChatId').value = tgSettings.chatId || '';
+            document.getElementById('telegramModal').classList.remove('hidden');
+            document.getElementById('telegramModal').classList.add('flex');
+        }
+
+        function closeTelegramModal() {
+            document.getElementById('telegramModal').classList.remove('flex');
+            document.getElementById('telegramModal').classList.add('hidden');
+        }
+
+        function saveTelegramSettings() {
+            tgSettings.token = document.getElementById('tgToken').value.trim();
+            tgSettings.chatId = document.getElementById('tgChatId').value.trim();
+            localStorage.setItem('telegram_settings_v9', JSON.stringify(tgSettings));
+            closeTelegramModal();
+            alert("Impostazioni Telegram salvate con successo!");
+        }
+
+        function sendTelegramMessage(text) {
+            if (!tgSettings.token || !tgSettings.chatId) return;
+            const url = `https://api.telegram.org/bot${tgSettings.token}/sendMessage`;
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: tgSettings.chatId, text: text, parse_mode: 'Markdown' })
+            }).catch(err => console.error("Errore invio Telegram:", err));
+        }
+
+        function sendTestTelegram() {
+            const token = document.getElementById('tgToken').value.trim();
+            const chatId = document.getElementById('tgChatId').value.trim();
+            if (!token || !chatId) {
+                alert("Inserisci prima Token e Chat ID.");
+                return;
+            }
+            const testUrl = `https://api.telegram.org/bot${token}/sendMessage`;
+            fetch(testUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: "🔔 *Test Piano Accantonamenti*: Notifiche configurate correttamente!" })
+            })
+            .then(res => {
+                if (res.ok) alert("Messaggio di test inviato con successo su Telegram!");
+                else alert("Errore: controlla che Token e Chat ID siano corretti e di aver avviato il bot su Telegram.");
+            })
+            .catch(() => alert("Errore di connessione."));
+        }
+
+        // Controllo automatico scadenze a 1 giorno (notifica il giorno prima)
+        function checkDailyNotifications(totalDailySum) {
+            if (!tgSettings.token || !tgSettings.chatId) return;
+
+            const todayStr = new Date().toISOString().split('T')[0];
+            const lastChecked = localStorage.getItem('tg_last_notif_date');
+
+            if (lastChecked === todayStr) return; // Inviato già oggi
+
+            let alertExpenses = [];
+            expenses.forEach(item => {
+                const metrics = calculateMetrics(item);
+                if (metrics.daysLeft === 1) { // 1 giorno alla scadenza = il giorno prima!
+                    alertExpenses.push(`- *${item.name}*: ${item.amount.toFixed(2)} € (Scade domani!)`);
+                }
+            });
+
+            if (alertExpenses.length > 0) {
+                let msg = `🚨 *PROMEMORIA ACCANTONAMENTI (Scadenza Domani)*\n\n` + alertExpenses.join('\n') + `\n\n💰 Accantonamento giornaliero consigliato oggi: *${totalDailySum.toFixed(2)} €*`;
+                sendTelegramMessage(msg);
+                localStorage.setItem('tg_last_notif_date', todayStr);
+            }
+        }
+
+        // Esportazione con Blob
         function exportBackup() {
             const backupData = { expenses, currentSavings };
-            const dataStr = JSON.stringify(backupData, null, 2);
-            const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8;' });
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
-            
             const downloadAnchor = document.createElement('a');
             downloadAnchor.href = url;
             downloadAnchor.download = `backup_piano_${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
-            
             setTimeout(() => {
                 document.body.removeChild(downloadAnchor);
                 URL.revokeObjectURL(url);
@@ -291,16 +391,12 @@
                             expenses = parsed.expenses;
                             currentSavings = typeof parsed.currentSavings === 'number' ? parsed.currentSavings : 0;
                             document.getElementById('currentSavings').value = currentSavings;
-                            localStorage.setItem('expenses_pro_v8', JSON.stringify(expenses));
-                            localStorage.setItem('current_savings_v8', currentSavings);
+                            localStorage.setItem('expenses_pro_v9', JSON.stringify(expenses));
+                            localStorage.setItem('current_savings_v9', currentSavings);
                             renderApp();
                             alert("Backup importato con successo!");
-                        } else {
-                            alert("Formato file non valido.");
-                        }
-                    } catch (error) {
-                        alert("Errore nella lettura del file.");
-                    }
+                        } else { alert("Formato file non valido."); }
+                    } catch (error) { alert("Errore nella lettura del file."); }
                 };
             }
         }
@@ -388,7 +484,10 @@
                 globalText.innerText = `Disavanzo (${diffGlobal.toFixed(2)} €)`;
             }
 
-            localStorage.setItem('expenses_pro_v8', JSON.stringify(expenses));
+            localStorage.setItem('expenses_pro_v9', JSON.stringify(expenses));
+
+            // Esegue il controllo notifiche Telegram (scadenza domani + quota giornaliera)
+            checkDailyNotifications(totalDailySum);
         }
 
         function openModal(index = -1) {
@@ -436,9 +535,7 @@
             renderApp();
         }
 
-        function editExpense(index) {
-            openModal(index);
-        }
+        function editExpense(index) { openModal(index); }
 
         function deleteExpense(index) {
             if (confirm("Eliminare questa spesa?")) {
