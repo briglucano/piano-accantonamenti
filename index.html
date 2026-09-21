@@ -209,22 +209,35 @@
             { id: 6, name: "Manutenzione Caldaia", amount: 110, frequency: "Annuale", startDate: "2026-09-30" }
         ];
 
-        let expenses = JSON.parse(localStorage.getItem('expenses_pro_v9')) || defaultExpenses;
-        let currentSavings = parseFloat(localStorage.getItem('current_savings_v9')) || 0;
+        let expenses = JSON.parse(localStorage.getItem('expenses_pro_v9_2')) || defaultExpenses;
+        let currentSavings = parseFloat(localStorage.getItem('current_savings_v9_2')) || 0;
         document.getElementById('currentSavings').value = currentSavings;
 
-        let tgSettings = JSON.parse(localStorage.getItem('telegram_settings_v9')) || { token: '', chatId: '' };
+        let tgSettings = JSON.parse(localStorage.getItem('telegram_settings_v9_2')) || { token: '', chatId: '' };
 
         const freqMonths = { "Mensile": 1, "Bimestrale": 2, "Trimestrale": 3, "Semestrale": 6, "Annuale": 12 };
 
+        // Helper per parsing sicuro date in ora locale (evita sfasamenti UTC)
+        function parseLocalDate(dateStr) {
+            const parts = dateStr.split('-');
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+        }
+
+        function formatLocalDate(dateObj) {
+            const y = dateObj.getFullYear();
+            const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const d = String(dateObj.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
         function calculateMetrics(item) {
-            let startDateObj = new Date(item.startDate);
+            let startDateObj = parseLocalDate(item.startDate);
             const today = new Date();
             today.setHours(0,0,0,0);
 
             const monthsToAdd = freqMonths[item.frequency] || 1;
 
-            let deadlineObj = new Date(startDateObj);
+            let deadlineObj = new Date(startDateObj.getTime());
             deadlineObj.setMonth(deadlineObj.getMonth() + monthsToAdd);
 
             while (deadlineObj <= today) {
@@ -232,8 +245,8 @@
                 deadlineObj.setMonth(deadlineObj.getMonth() + monthsToAdd);
             }
 
-            const activeStartStr = startDateObj.toISOString().split('T')[0];
-            const nextDeadlineStr = deadlineObj.toISOString().split('T')[0];
+            const activeStartStr = formatLocalDate(startDateObj);
+            const nextDeadlineStr = formatLocalDate(deadlineObj);
 
             const totalPeriodDays = Math.max(1, Math.round((deadlineObj - startDateObj) / (1000 * 60 * 60 * 24)));
             const elapsedDays = Math.max(0, Math.round((today - startDateObj) / (1000 * 60 * 60 * 24)));
@@ -244,7 +257,7 @@
             const dailyQuota = monthlyQuota / 30.5;
 
             const diffTime = deadlineObj - today;
-            const daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+            const daysLeft = Math.max(0, Math.round(diffTime / (1000 * 60 * 60 * 24)));
 
             return {
                 activeStartStr,
@@ -258,7 +271,7 @@
 
         function updateSavingsDirect(val) {
             currentSavings = parseFloat(val) || 0;
-            localStorage.setItem('current_savings_v9', currentSavings);
+            localStorage.setItem('current_savings_v9_2', currentSavings);
             renderApp();
         }
 
@@ -272,7 +285,7 @@
             currentSavings += val;
             document.getElementById('currentSavings').value = currentSavings;
             input.value = '';
-            localStorage.setItem('current_savings_v9', currentSavings);
+            localStorage.setItem('current_savings_v9_2', currentSavings);
             renderApp();
         }
 
@@ -283,7 +296,7 @@
             if (confirm(`Vuoi registrare il pagamento di "${item.name}" per ${item.amount.toFixed(2)} €?\n\nQuesto scalerà la cifra dai risparmi e rinnoverà la scadenza al prossimo ciclo.`)) {
                 currentSavings = Math.max(0, currentSavings - item.amount);
                 document.getElementById('currentSavings').value = currentSavings;
-                localStorage.setItem('current_savings_v9', currentSavings);
+                localStorage.setItem('current_savings_v9_2', currentSavings);
                 expenses[index].startDate = metrics.nextDeadlineStr;
                 renderApp();
             }
@@ -305,7 +318,7 @@
         function saveTelegramSettings() {
             tgSettings.token = document.getElementById('tgToken').value.trim();
             tgSettings.chatId = document.getElementById('tgChatId').value.trim();
-            localStorage.setItem('telegram_settings_v9', JSON.stringify(tgSettings));
+            localStorage.setItem('telegram_settings_v9_2', JSON.stringify(tgSettings));
             closeTelegramModal();
             alert("Impostazioni Telegram salvate con successo!");
         }
@@ -331,21 +344,25 @@
             fetch(testUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: chatId, text: "🔔 *Test Piano Accantonamenti*: Notifiche configurate correttamente!" })
+                body: JSON.stringify({ chat_id: chatId, text: "🔔 Test Piano Accantonamenti: Notifiche configurate correttamente!" })
             })
-            .then(res => {
-                if (res.ok) alert("Messaggio di test inviato con successo su Telegram!");
-                else alert("Errore: controlla che Token e Chat ID siano corretti e di aver avviato il bot su Telegram.");
+            .then(async res => {
+                const data = await res.json();
+                if (res.ok && data.ok) {
+                    alert("Messaggio di test inviato con successo su Telegram!");
+                } else {
+                    alert(`Errore Telegram: ${data.description || 'Controlla Token e Chat ID'}`);
+                }
             })
-            .catch(() => alert("Errore di connessione."));
+            .catch(err => alert("Errore di connessione: " + err.message));
         }
 
         // Controllo automatico scadenze a 1 giorno (notifica il giorno prima)
         function checkDailyNotifications(totalDailySum) {
             if (!tgSettings.token || !tgSettings.chatId) return;
 
-            const todayStr = new Date().toISOString().split('T')[0];
-            const lastChecked = localStorage.getItem('tg_last_notif_date');
+            const todayStr = formatLocalDate(new Date());
+            const lastChecked = localStorage.getItem('tg_last_notif_date_v9_2');
 
             if (lastChecked === todayStr) return; // Inviato già oggi
 
@@ -360,18 +377,17 @@
             if (alertExpenses.length > 0) {
                 let msg = `🚨 *PROMEMORIA ACCANTONAMENTI (Scadenza Domani)*\n\n` + alertExpenses.join('\n') + `\n\n💰 Accantonamento giornaliero consigliato oggi: *${totalDailySum.toFixed(2)} €*`;
                 sendTelegramMessage(msg);
-                localStorage.setItem('tg_last_notif_date', todayStr);
+                localStorage.setItem('tg_last_notif_date_v9_2', todayStr);
             }
         }
 
-        // Esportazione con Blob
         function exportBackup() {
             const backupData = { expenses, currentSavings };
             const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const downloadAnchor = document.createElement('a');
             downloadAnchor.href = url;
-            downloadAnchor.download = `backup_piano_${new Date().toISOString().split('T')[0]}.json`;
+            downloadAnchor.download = `backup_piano_${formatLocalDate(new Date())}.json`;
             document.body.appendChild(downloadAnchor);
             downloadAnchor.click();
             setTimeout(() => {
@@ -391,8 +407,8 @@
                             expenses = parsed.expenses;
                             currentSavings = typeof parsed.currentSavings === 'number' ? parsed.currentSavings : 0;
                             document.getElementById('currentSavings').value = currentSavings;
-                            localStorage.setItem('expenses_pro_v9', JSON.stringify(expenses));
-                            localStorage.setItem('current_savings_v9', currentSavings);
+                            localStorage.setItem('expenses_pro_v9_2', JSON.stringify(expenses));
+                            localStorage.setItem('current_savings_v9_2', currentSavings);
                             renderApp();
                             alert("Backup importato con successo!");
                         } else { alert("Formato file non valido."); }
@@ -484,9 +500,7 @@
                 globalText.innerText = `Disavanzo (${diffGlobal.toFixed(2)} €)`;
             }
 
-            localStorage.setItem('expenses_pro_v9', JSON.stringify(expenses));
-
-            // Esegue il controllo notifiche Telegram (scadenza domani + quota giornaliera)
+            localStorage.setItem('expenses_pro_v9_2', JSON.stringify(expenses));
             checkDailyNotifications(totalDailySum);
         }
 
@@ -505,7 +519,7 @@
                 document.getElementById('modalTitle').innerText = "Aggiungi Nuova Spesa";
                 document.getElementById('editIndex').value = -1;
                 document.getElementById('expenseForm').reset();
-                document.getElementById('startDate').value = new Date().toISOString().split('T')[0];
+                document.getElementById('startDate').value = formatLocalDate(new Date());
             }
         }
 
