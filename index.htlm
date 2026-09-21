@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Piano Accantonamento Pro</title>
+    <!-- Ottimizzazioni per Web App iOS / Safari -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Accantonamenti">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Evita lo zoom automatico su iOS e migliora il touch */
+        input, select, button {
+            font-size: 16px !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen pb-12">
+
+    <!-- Header -->
+    <header class="bg-indigo-700 shadow-md py-6 px-4 sm:px-8 mb-6">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-xl sm:text-3xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-vault"></i> Piano Accantonamento Pro
+                </h1>
+                <p class="text-indigo-200 text-xs sm:text-sm mt-1">Controllo scadenze e copertura finanziaria</p>
+            </div>
+            <!-- Pulsanti Azione Header -->
+            <div class="flex items-center gap-2 flex-wrap justify-center w-full sm:w-auto">
+                <button onclick="exportBackup()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5 text-xs sm:text-sm" title="Esporta Backup">
+                    <i class="fa-solid fa-download"></i> Esporta
+                </button>
+                <label class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5 text-xs sm:text-sm cursor-pointer" title="Importa Backup">
+                    <i class="fa-solid fa-upload"></i> Importa
+                    <input type="file" id="importFile" accept=".json" onchange="importBackup(event)" class="hidden">
+                </label>
+                <button onclick="openModal()" class="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold px-4 py-2 rounded-xl shadow transition flex items-center gap-2 text-xs sm:text-sm">
+                    <i class="fa-solid fa-plus"></i> Nuova Spesa
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-8 space-y-6">
+
+        <!-- Pannello Controllo Cassa & Versamenti Rapidi -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-3 gap-5 items-center">
+            <div>
+                <label class="block text-xs sm:text-sm font-medium text-slate-500 mb-1">Risparmi Totali in Cassa (€)</label>
+                <div class="flex items-center gap-2 mb-2">
+                    <input type="number" step="0.01" id="currentSavings" oninput="updateSavingsDirect(this.value)" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500" value="0">
+                </div>
+                <!-- Box Versamento Rapido -->
+                <div class="flex gap-2">
+                    <input type="number" step="0.01" id="quickDepositInput" placeholder="+ Importo da versare" class="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <button onclick="addQuickDeposit()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-3 py-2 rounded-lg shadow transition whitespace-nowrap text-sm">
+                        <i class="fa-solid fa-arrow-down-long mr-1"></i> Versa
+                    </button>
+                </div>
+            </div>
+            <div class="border-t md:border-t-0 md:border-l md:border-r border-slate-100 md:px-6 pt-3 md:pt-0">
+                <p class="text-xs sm:text-sm font-medium text-slate-500">Target Teorico Oggi (Totale)</p>
+                <h3 id="targetToday" class="text-2xl font-bold text-slate-800 mt-1">0,00 €</h3>
+                <p class="text-xs text-slate-400 mt-1">Quanto dovresti avere accumulato ad oggi.</p>
+            </div>
+            <div id="globalStatusCard" class="p-4 rounded-xl border flex flex-col justify-center">
+                <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Stato Globale Fondo</p>
+                <h3 id="globalStatusText" class="text-lg sm:text-xl font-bold mt-1">In attesa...</h3>
+            </div>
+        </div>
+
+        <!-- KPI Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs sm:text-sm font-medium text-slate-500">Accantonamento Giornaliero</p>
+                    <h3 id="totalDaily" class="text-2xl sm:text-3xl font-bold text-indigo-600 mt-1">0,00 €</h3>
+                </div>
+                <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs sm:text-sm font-medium text-slate-500">Quota Mensile Totale</p>
+                    <h3 id="totalMonthly" class="text-2xl sm:text-3xl font-bold text-slate-800 mt-1">0,00 €</h3>
+                </div>
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </div>
+            </div>
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs sm:text-sm font-medium text-slate-500">Voci Monitorate</p>
+                    <h3 id="totalCount" class="text-2xl sm:text-3xl font-bold text-slate-800 mt-1">0</h3>
+                </div>
+                <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-list-check"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <h2 class="text-base sm:text-lg font-bold text-slate-800">Piano Spese (ordinate per scadenza)</h2>
+                <span class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-3 py-1 rounded-full">Aggiornato in tempo reale</span>
+            </div>
+            <div class="overflow-x-auto [-webkit-overflow-scrolling:touch]">
+                <table class="w-full text-left border-collapse min-w-[700px]">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-400 uppercase text-xs tracking-wider border-b border-slate-100">
+                            <th class="py-3 px-4 sm:px-6 font-semibold">Spesa</th>
+                            <th class="py-3 px-4 sm:px-6 font-semibold">Importo</th>
+                            <th class="py-3 px-4 sm:px-6 font-semibold">Frequenza</th>
+                            <th class="py-3 px-4 sm:px-6 font-semibold">Scadenza</th>
+                            <th class="py-3 px-4 sm:px-6 font-semibold">Mancanti</th>
+                            <th class="py-3 px-4 sm:px-6 font-semibold">Quota/G</th>
+                            <th class="py-3 px-4 sm:px-6 font-semibold">Stato</th>
+                            <th class="py-3 px-4 sm:px-6 font-semibold text-center">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="expenseTableBody" class="divide-y divide-slate-100 text-sm">
+                        <!-- Popolato dinamicamente da JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Aggiungi / Modifica Spesa -->
+    <div id="expenseModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative">
+            <h3 id="modalTitle" class="text-xl font-bold text-slate-800 mb-4">Aggiungi Nuova Spesa</h3>
+            <form id="expenseForm" onsubmit="handleFormSubmit(event)" class="space-y-4">
+                <input type="hidden" id="editIndex" value="-1">
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Nome Spesa</label>
+                    <input type="text" id="name" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Importo Totale (€)</label>
+                    <input type="number" step="0.01" id="amount" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Frequenza</label>
+                    <select id="frequency" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="Mensile">Mensile</option>
+                        <option value="Bimestrale">Bimestrale</option>
+                        <option value="Trimestrale">Trimestrale</option>
+                        <option value="Semestrale">Semestrale</option>
+                        <option value="Annuale">Annuale</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-600 mb-1">Data Inizio / Ultimo Pagamento</label>
+                    <input type="date" id="startDate" required class="w-full px-4 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="flex justify-end gap-3 mt-6">
+                    <button type="button" onclick="closeModal()" class="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium transition">Annulla</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-700 hover:bg-indigo-800 text-white font-medium shadow transition">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script Logica -->
+    <script>
+        const defaultExpenses = [
+            { id: 1, name: "Assicurazione Auto", amount: 211, frequency: "Semestrale", startDate: "2026-08-27" },
+            { id: 2, name: "Piscina", amount: 85, frequency: "Mensile", startDate: "2026-09-01" },
+            { id: 3, name: "SIM Telefonica", amount: 7, frequency: "Mensile", startDate: "2026-09-02" },
+            { id: 4, name: "Bolletta Luce/Gas", amount: 160, frequency: "Bimestrale", startDate: "2026-09-22" },
+            { id: 5, name: "Bollo Scooter", amount: 19.39, frequency: "Annuale", startDate: "2026-02-28" },
+            { id: 6, name: "Manutenzione Caldaia", amount: 110, frequency: "Annuale", startDate: "2026-09-30" }
+        ];
+
+        let expenses = JSON.parse(localStorage.getItem('expenses_pro_v5')) || defaultExpenses;
+        let currentSavings = parseFloat(localStorage.getItem('current_savings_v5')) || 0;
+        document.getElementById('currentSavings').value = currentSavings;
+
+        const freqMonths = { "Mensile": 1, "Bimestrale": 2, "Trimestrale": 3, "Semestrale": 6, "Annuale": 12 };
+
+        function calculateMetrics(item) {
+            const start = new Date(item.startDate);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            let nextDeadline = new Date(start);
+            const monthsToAdd = freqMonths[item.frequency] || 1;
+
+            let prevDeadline = new Date(nextDeadline);
+            while (nextDeadline <= today) {
+                prevDeadline = new Date(nextDeadline);
+                nextDeadline.setMonth(nextDeadline.getMonth() + monthsToAdd);
+            }
+
+            const totalPeriodDays = Math.max(1, Math.round((nextDeadline - prevDeadline) / (1000 * 60 * 60 * 24)));
+            const elapsedDays = Math.max(0, Math.round((today - prevDeadline) / (1000 * 60 * 60 * 24)));
+            
+            const targetTodayItem = Math.min(item.amount, (item.amount * elapsedDays) / totalPeriodDays);
+            
+            const monthlyQuota = item.amount / monthsToAdd;
+            const dailyQuota = monthlyQuota / 30.5;
+
+            const diffTime = nextDeadline - today;
+            const daysLeft = Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
+            return {
+                nextDeadlineStr: nextDeadline.toISOString().split('T')[0],
+                daysLeft,
+                dailyQuota,
+                monthlyQuota,
+                targetTodayItem
+            };
+        }
+
+        function updateSavingsDirect(val) {
+            currentSavings = parseFloat(val) || 0;
+            localStorage.setItem('current_savings_v5', currentSavings);
+            renderApp();
+        }
+
+        function addQuickDeposit() {
+            const input = document.getElementById('quickDepositInput');
+            const val = parseFloat(input.value);
+            if (isNaN(val) || val <= 0) {
+                alert("Inserisci un importo valido da versare.");
+                return;
+            }
+            currentSavings += val;
+            document.getElementById('currentSavings').value = currentSavings;
+            input.value = '';
+            localStorage.setItem('current_savings_v5', currentSavings);
+            renderApp();
+        }
+
+        function payExpense(index) {
+            const item = expenses[index];
+            const metrics = calculateMetrics(item);
+
+            if (confirm(`Vuoi registrare il pagamento di "${item.name}" per ${item.amount.toFixed(2)} €?\n\nQuesto scalerà la cifra dai risparmi e rinnoverà la scadenza al prossimo ciclo.`)) {
+                currentSavings = Math.max(0, currentSavings - item.amount);
+                document.getElementById('currentSavings').value = currentSavings;
+                localStorage.setItem('current_savings_v5', currentSavings);
+                expenses[index].startDate = metrics.nextDeadlineStr;
+                renderApp();
+            }
+        }
+
+        function exportBackup() {
+            const backupData = { expenses, currentSavings };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `backup_piano_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importBackup(event) {
+            const fileReader = new FileReader();
+            if (event.target.files[0]) {
+                fileReader.readAsText(event.target.files[0], "UTF-8");
+                fileReader.onload = function (e) {
+                    try {
+                        const parsed = JSON.parse(e.target.result);
+                        if (parsed.expenses && Array.isArray(parsed.expenses)) {
+                            expenses = parsed.expenses;
+                            currentSavings = typeof parsed.currentSavings === 'number' ? parsed.currentSavings : 0;
+                            document.getElementById('currentSavings').value = currentSavings;
+                            localStorage.setItem('expenses_pro_v5', JSON.stringify(expenses));
+                            localStorage.setItem('current_savings_v5', currentSavings);
+                            renderApp();
+                            alert("Backup importato con successo!");
+                        } else {
+                            alert("Formato file non valido.");
+                        }
+                    } catch (error) {
+                        alert("Errore nella lettura del file.");
+                    }
+                };
+            }
+        }
+
+        function renderApp() {
+            expenses.sort((a, b) => calculateMetrics(a).daysLeft - calculateMetrics(b).daysLeft);
+
+            const tbody = document.getElementById('expenseTableBody');
+            tbody.innerHTML = '';
+
+            let totalDailySum = 0;
+            let totalMonthlySum = 0;
+            let totalTargetToday = 0;
+            let runningTargetSum = 0;
+
+            const processedItems = expenses.map((item) => {
+                const metrics = calculateMetrics(item);
+                totalDailySum += metrics.dailyQuota;
+                totalMonthlySum += metrics.monthlyQuota;
+                totalTargetToday += metrics.targetTodayItem;
+                return { item, metrics };
+            });
+
+            processedItems.forEach(({ item, metrics }, index) => {
+                runningTargetSum += metrics.targetTodayItem;
+                const isCovered = currentSavings >= runningTargetSum;
+
+                let badgeExpiry = "bg-emerald-50 text-emerald-700 border-emerald-100";
+                if (metrics.daysLeft <= 3) badgeExpiry = "bg-rose-50 text-rose-700 border-rose-100 font-bold animate-pulse";
+                else if (metrics.daysLeft <= 30) badgeExpiry = "bg-amber-50 text-amber-700 border-amber-100";
+
+                let badgeCover = isCovered 
+                    ? '<span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">COPERTO</span>'
+                    : '<span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">SCOPERTO</span>';
+
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-50/80 transition";
+                row.innerHTML = `
+                    <td class="py-3 px-4 sm:px-6 font-semibold text-slate-800">${item.name}</td>
+                    <td class="py-3 px-4 sm:px-6 font-medium text-slate-600">${Number(item.amount).toFixed(2)} €</td>
+                    <td class="py-3 px-4 sm:px-6 text-slate-500">${item.frequency}</td>
+                    <td class="py-3 px-4 sm:px-6 text-slate-600">${metrics.nextDeadlineStr.split('-').reverse().join('/')}</td>
+                    <td class="py-3 px-4 sm:px-6">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border ${badgeExpiry}">
+                            ${metrics.daysLeft}g
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 sm:px-6 font-bold text-indigo-600">${metrics.dailyQuota.toFixed(2)} €</td>
+                    <td class="py-3 px-4 sm:px-6">${badgeCover}</td>
+                    <td class="py-3 px-4 sm:px-6 text-center space-x-1 whitespace-nowrap">
+                        <button onclick="payExpense(${index})" class="px-2 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold text-xs transition inline-flex items-center gap-1" title="Paga">
+                            <i class="fa-solid fa-check"></i> Paga
+                        </button>
+                        <button onclick="editExpense(${index})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition inline-flex items-center justify-center" title="Modifica">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button onclick="deleteExpense(${index})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition inline-flex items-center justify-center" title="Elimina">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            document.getElementById('totalDaily').innerText = totalDailySum.toFixed(2) + ' €';
+            document.getElementById('totalMonthly').innerText = totalMonthlySum.toFixed(2) + ' €';
+            document.getElementById('totalCount').innerText = expenses.length;
+            document.getElementById('targetToday').innerText = totalTargetToday.toFixed(2) + ' €';
+
+            const diffGlobal = currentSavings - totalTargetToday;
+            const globalCard = document.getElementById('globalStatusCard');
+            const globalText = document.getElementById('globalStatusText');
+            
+            if (diffGlobal >= 0) {
+                globalCard.className = "p-4 rounded-xl border bg-emerald-50 border-emerald-200 flex flex-col justify-center";
+                globalText.className = "text-base sm:text-lg font-bold mt-1 text-emerald-700";
+                globalText.innerText = `In Sicurezza (+${diffGlobal.toFixed(2)} €)`;
+            } else {
+                globalCard.className = "p-4 rounded-xl border bg-rose-50 border-rose-200 flex flex-col justify-center";
+                globalText.className = "text-base sm:text-lg font-bold mt-1 text-rose-700";
+                globalText.innerText = `Disavanzo (${diffGlobal.toFixed(2)} €)`;
+            }
+
+            localStorage.setItem('expenses_pro_v5', JSON.stringify(expenses));
+        }
+
+        function openModal(index = -1) {
+            document.getElementById('expenseModal').classList.remove('hidden');
+            document.getElementById('expenseModal').classList.add('flex');
+            
+            if (index >= 0) {
+                document.getElementById('modalTitle').innerText = "Modifica Spesa";
+                document.getElementById('editIndex').value = index;
+                document.getElementById('name').value = expenses[index].name;
+                document.getElementById('amount').value = expenses[index].amount;
+                document.getElementById('frequency').value = expenses[index].frequency;
+                document.getElementById('startDate').value = expenses[index].startDate;
+            } else {
+                document.getElementById('modalTitle').innerText = "Aggiungi Nuova Spesa";
+                document.getElementById('editIndex').value = -1;
+                document.getElementById('expenseForm').reset();
+                document.getElementById('startDate').value = new Date().toISOString().split('T')[0];
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('expenseModal').classList.remove('flex');
+            document.getElementById('expenseModal').classList.add('hidden');
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const editIndex = parseInt(document.getElementById('editIndex').value);
+            const expenseData = {
+                id: editIndex >= 0 ? expenses[editIndex].id : Date.now(),
+                name: document.getElementById('name').value,
+                amount: parseFloat(document.getElementById('amount').value),
+                frequency: document.getElementById('frequency').value,
+                startDate: document.getElementById('startDate').value
+            };
+
+            if (editIndex >= 0) {
+                expenses[editIndex] = expenseData;
+            } else {
+                expenses.push(expenseData);
+            }
+
+            closeModal();
+            renderApp();
+        }
+
+        function editExpense(index) {
+            openModal(index);
+        }
+
+        function deleteExpense(index) {
+            if (confirm("Eliminare questa spesa?")) {
+                expenses.splice(index, 1);
+                renderApp();
+            }
+        }
+
+        renderApp();
+    </script>
+</body>
+</html>
