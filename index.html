@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piano Accantonamento Pro v9.7</title>
+    <title>Piano Accantonamento Pro v9.8</title>
     <!-- Ottimizzazioni per Web App iOS / Safari -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -27,7 +27,7 @@
                 </h1>
                 <p class="text-indigo-200 text-xs sm:text-sm mt-1">Controllo scadenze e copertura finanziaria</p>
             </div>
-            <!-- Pulsanti Azione Header (Responsive e compatti) -->
+            <!-- Pulsanti Azione Header -->
             <div class="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap w-full md:w-auto">
                 <button onclick="openTelegramModal()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Configura Telegram">
                     <i class="fa-brands fa-telegram"></i> <span class="hidden sm:inline">Telegram</span>
@@ -38,10 +38,12 @@
                 <button onclick="exportBackup()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Esporta Backup">
                     <i class="fa-solid fa-download"></i> <span class="hidden sm:inline">Esporta</span>
                 </button>
-                <label class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm cursor-pointer" title="Importa Backup">
+                <button onclick="triggerImport()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Importa Backup">
                     <i class="fa-solid fa-upload"></i> <span class="hidden sm:inline">Importa</span>
-                    <input type="file" id="importFile" accept=".json" onchange="importBackup(event)" class="hidden">
-                </label>
+                </button>
+                <!-- Input file nascosto separato e compatibile con iOS -->
+                <input type="file" id="importFile" accept="application/json,.json,*/*" onchange="importBackup(event)" class="hidden">
+
                 <button onclick="openModal()" class="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5 text-xs sm:text-sm">
                     <i class="fa-solid fa-plus"></i> Nuova Spesa
                 </button>
@@ -204,7 +206,7 @@
         </div>
     </div>
 
-    <!-- Script Logica v9.7 -->
+    <!-- Script Logica v9.8 -->
     <script>
         const defaultExpenses = [
             { id: 1, name: "Abbonamento Palestra (Scaduto test)", amount: 50, frequency: "Mensile", startDate: "2026-07-23" },
@@ -219,19 +221,16 @@
 
         let rawExpenses = defaultExpenses;
         try {
-            const saved = localStorage.getItem('expenses_pro_v9_7') || 
-                          localStorage.getItem('expenses_pro_v9_6') || 
-                          localStorage.getItem('expenses_pro_v9_5') || 
-                          localStorage.getItem('expenses_pro_v9_4');
+            const saved = localStorage.getItem('expenses_pro_v9_8') || 
+                          localStorage.getItem('expenses_pro_v9_7') || 
+                          localStorage.getItem('expenses_pro_v9_6');
             if (saved) {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed) && parsed.length > 0) {
                     rawExpenses = parsed;
                 }
             }
-        } catch (e) {
-            console.error("Errore lettura spese:", e);
-        }
+        } catch (e) { console.error("Errore lettura spese:", e); }
 
         let expenses = rawExpenses.map((item, idx) => ({
             id: item.id || (Date.now() + idx),
@@ -243,36 +242,28 @@
 
         let currentSavings = 0;
         try {
-            const savedSav = localStorage.getItem('current_savings_v9_7') ?? 
-                             localStorage.getItem('current_savings_v9_6') ?? 
-                             localStorage.getItem('current_savings_v9_5') ?? 
-                             localStorage.getItem('current_savings_v9_4');
+            const savedSav = localStorage.getItem('current_savings_v9_8') ?? 
+                             localStorage.getItem('current_savings_v9_7') ?? 
+                             localStorage.getItem('current_savings_v9_6');
             if (savedSav !== null && !isNaN(parseFloat(savedSav))) {
                 currentSavings = parseFloat(savedSav);
             }
-        } catch (e) {
-            currentSavings = 0;
-        }
+        } catch (e) { currentSavings = 0; }
 
         document.getElementById('currentSavings').value = currentSavings;
 
         let tgSettings = { token: '', chatId: '' };
         try {
-            tgSettings = JSON.parse(localStorage.getItem('telegram_settings_v9_7') || 
-                                    localStorage.getItem('telegram_settings_v9_6') || 
-                                    localStorage.getItem('telegram_settings_v9_5') || '{}');
-        } catch (e) {
-            tgSettings = { token: '', chatId: '' };
-        }
+            tgSettings = JSON.parse(localStorage.getItem('telegram_settings_v9_8') || 
+                                    localStorage.getItem('telegram_settings_v9_7') || '{}');
+        } catch (e) { tgSettings = { token: '', chatId: '' }; }
 
         function parseLocalDate(dateStr) {
             try {
                 if (!dateStr || typeof dateStr !== 'string' || !dateStr.includes('-')) return new Date();
                 const parts = dateStr.split('-');
                 return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-            } catch (e) {
-                return new Date();
-            }
+            } catch (e) { return new Date(); }
         }
 
         function formatLocalDate(dateObj) {
@@ -323,7 +314,7 @@
 
         function updateSavingsDirect(val) {
             currentSavings = parseFloat(val) || 0;
-            localStorage.setItem('current_savings_v9_7', currentSavings);
+            localStorage.setItem('current_savings_v9_8', currentSavings);
             renderApp();
         }
 
@@ -337,7 +328,7 @@
             currentSavings += val;
             document.getElementById('currentSavings').value = currentSavings;
             input.value = '';
-            localStorage.setItem('current_savings_v9_7', currentSavings);
+            localStorage.setItem('current_savings_v9_8', currentSavings);
             renderApp();
         }
 
@@ -348,7 +339,7 @@
             if (confirm(`Vuoi registrare il pagamento di "${item.name}" per ${item.amount.toFixed(2)} €?\n\nQuesto scalerà la cifra dai risparmi e rinnoverà la scadenza al prossimo ciclo.`)) {
                 currentSavings = Math.max(0, currentSavings - item.amount);
                 document.getElementById('currentSavings').value = currentSavings;
-                localStorage.setItem('current_savings_v9_7', currentSavings);
+                localStorage.setItem('current_savings_v9_8', currentSavings);
                 
                 expenses[index].startDate = metrics.nextDeadlineStr;
                 renderApp();
@@ -358,13 +349,85 @@
         function resetToDefaults() {
             if (confirm("Vuoi ripristinare le spese di esempio iniziali?")) {
                 expenses = JSON.parse(JSON.stringify(defaultExpenses));
-                localStorage.setItem('expenses_pro_v9_7', JSON.stringify(expenses));
+                localStorage.setItem('expenses_pro_v9_8', JSON.stringify(expenses));
                 currentSavings = 0;
                 document.getElementById('currentSavings').value = 0;
-                localStorage.setItem('current_savings_v9_7', 0);
+                localStorage.setItem('current_savings_v9_8', 0);
                 renderApp();
                 alert("Dati ripristinati con successo!");
             }
+        }
+
+        // Esportazione Nativa Mobile (Web Share API per iOS/Android, download fallback per Desktop)
+        async function exportBackup() {
+            const backupData = { expenses, currentSavings };
+            const dataStr = JSON.stringify(backupData, null, 2);
+            const fileName = `backup_piano_${formatLocalDate(new Date())}.json`;
+
+            if (navigator.canShare && navigator.share) {
+                try {
+                    const file = new File([dataStr], fileName, { type: 'application/json' });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: 'Backup Accantonamenti',
+                            text: 'File di backup del tuo Piano Accantonamenti.'
+                        });
+                        return;
+                    }
+                } catch (err) {
+                    if (err.name !== 'AbortError') console.log('Web Share fallito, ricorro al fallback:', err);
+                    else return;
+                }
+            }
+
+            // Fallback Standard Desktop
+            const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.href = url;
+            downloadAnchor.download = fileName;
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            setTimeout(() => {
+                document.body.removeChild(downloadAnchor);
+                URL.revokeObjectURL(url);
+            }, 500);
+        }
+
+        // Trigger Importazione compatibile iOS Safari
+        function triggerImport() {
+            const input = document.getElementById('importFile');
+            input.value = '';
+            input.click();
+        }
+
+        function importBackup(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            const fileReader = new FileReader();
+            fileReader.onload = function (e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (parsed.expenses && Array.isArray(parsed.expenses)) {
+                        expenses = parsed.expenses.map((item, idx) => ({
+                            id: item.id || (Date.now() + idx),
+                            name: item.name || "Spesa",
+                            amount: !isNaN(parseFloat(item.amount)) ? parseFloat(item.amount) : 0,
+                            frequency: freqMonths[item.frequency] ? item.frequency : "Mensile",
+                            startDate: (item.startDate && item.startDate.includes('-')) ? item.startDate : "2026-09-01"
+                        }));
+                        currentSavings = typeof parsed.currentSavings === 'number' ? parsed.currentSavings : 0;
+                        document.getElementById('currentSavings').value = currentSavings;
+                        localStorage.setItem('expenses_pro_v9_8', JSON.stringify(expenses));
+                        localStorage.setItem('current_savings_v9_8', currentSavings);
+                        renderApp();
+                        alert("Backup importato con successo!");
+                    } else { alert("Formato file non valido. Assicurati che sia un file JSON di backup."); }
+                } catch (error) { alert("Errore nella lettura del file di backup."); }
+            };
+            fileReader.readAsText(file, "UTF-8");
         }
 
         // Gestione Telegram UI & API
@@ -383,7 +446,7 @@
         function saveTelegramSettings() {
             tgSettings.token = document.getElementById('tgToken').value.trim();
             tgSettings.chatId = document.getElementById('tgChatId').value.trim();
-            localStorage.setItem('telegram_settings_v9_7', JSON.stringify(tgSettings));
+            localStorage.setItem('telegram_settings_v9_8', JSON.stringify(tgSettings));
             closeTelegramModal();
             alert("Impostazioni Telegram salvate con successo!");
         }
@@ -473,7 +536,7 @@
             if (!tgSettings.token || !tgSettings.chatId) return;
 
             const todayStr = formatLocalDate(new Date());
-            const lastChecked = localStorage.getItem('tg_last_notif_date_v9_7');
+            const lastChecked = localStorage.getItem('tg_last_notif_date_v9_8');
 
             if (lastChecked === todayStr) return;
 
@@ -488,44 +551,8 @@
             if (alertExpenses.length > 0) {
                 let msg = `🚨 *PROMEMORIA ACCANTONAMENTI (Scadenza Domani)*\n\n` + alertExpenses.join('\n') + `\n\n💰 Accantonamento giornaliero consigliato oggi: *${totalDailySum.toFixed(2)} €*`;
                 sendTelegramMessage(msg).then(() => {
-                    localStorage.setItem('tg_last_notif_date_v9_7', todayStr);
+                    localStorage.setItem('tg_last_notif_date_v9_8', todayStr);
                 });
-            }
-        }
-
-        function exportBackup() {
-            const backupData = { expenses, currentSavings };
-            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.href = url;
-            downloadAnchor.download = `backup_piano_${formatLocalDate(new Date())}.json`;
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            setTimeout(() => {
-                document.body.removeChild(downloadAnchor);
-                URL.revokeObjectURL(url);
-            }, 100);
-        }
-
-        function importBackup(event) {
-            const fileReader = new FileReader();
-            if (event.target.files[0]) {
-                fileReader.readAsText(event.target.files[0], "UTF-8");
-                fileReader.onload = function (e) {
-                    try {
-                        const parsed = JSON.parse(e.target.result);
-                        if (parsed.expenses && Array.isArray(parsed.expenses)) {
-                            expenses = parsed.expenses;
-                            currentSavings = typeof parsed.currentSavings === 'number' ? parsed.currentSavings : 0;
-                            document.getElementById('currentSavings').value = currentSavings;
-                            localStorage.setItem('expenses_pro_v9_7', JSON.stringify(expenses));
-                            localStorage.setItem('current_savings_v9_7', currentSavings);
-                            renderApp();
-                            alert("Backup importato con successo!");
-                        } else { alert("Formato file non valido."); }
-                    } catch (error) { alert("Errore nella lettura del file."); }
-                };
             }
         }
 
@@ -625,11 +652,9 @@
                     globalText.innerText = `Disavanzo (${diffGlobal.toFixed(2)} €)`;
                 }
 
-                localStorage.setItem('expenses_pro_v9_7', JSON.stringify(expenses));
+                localStorage.setItem('expenses_pro_v9_8', JSON.stringify(expenses));
                 checkDailyNotifications(totalDailySum);
-            } catch (err) {
-                console.error("Errore critico in renderApp:", err);
-            }
+            } catch (err) { console.error("Errore critico in renderApp:", err); }
         }
 
         function openModal(index = -1) {
