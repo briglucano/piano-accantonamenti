@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piano Accantonamento Pro v9.8</title>
+    <title>Piano Accantonamento Pro v9.9</title>
     <!-- Ottimizzazioni per Web App iOS / Safari -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -27,22 +27,25 @@
                 </h1>
                 <p class="text-indigo-200 text-xs sm:text-sm mt-1">Controllo scadenze e copertura finanziaria</p>
             </div>
-            <!-- Pulsanti Azione Header -->
+            <!-- Pulsanti Azione Header con Icone Corrette -->
             <div class="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap w-full md:w-auto">
                 <button onclick="openTelegramModal()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Configura Telegram">
                     <i class="fa-brands fa-telegram"></i> <span class="hidden sm:inline">Telegram</span>
                 </button>
-                <button onclick="resetToDefaults()" class="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Ripristina Dati">
+                <button onclick="resetToDefaults()" class="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Ripristina Dati di Esempio">
                     <i class="fa-solid fa-rotate-right"></i> <span class="hidden sm:inline">Reset</span>
                 </button>
-                <button onclick="exportBackup()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Esporta Backup">
-                    <i class="fa-solid fa-download"></i> <span class="hidden sm:inline">Esporta</span>
+                
+                <!-- Esporta Backup (Download da App a Dispositivo) -->
+                <button onclick="exportBackup()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Esporta Backup (Scarica File)">
+                    <i class="fa-solid fa-file-export"></i> <span class="hidden sm:inline">Esporta</span>
                 </button>
-                <button onclick="triggerImport()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Importa Backup">
-                    <i class="fa-solid fa-upload"></i> <span class="hidden sm:inline">Importa</span>
-                </button>
-                <!-- Input file nascosto separato e compatibile con iOS -->
-                <input type="file" id="importFile" accept="application/json,.json,*/*" onchange="importBackup(event)" class="hidden">
+                
+                <!-- Importa Backup (Upload da Dispositivo ad App) -->
+                <label for="importFile" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm cursor-pointer" title="Importa Backup (Carica File)">
+                    <i class="fa-solid fa-file-import"></i> <span class="hidden sm:inline">Importa</span>
+                </label>
+                <input type="file" id="importFile" accept=".json,application/json,text/plain" onchange="importBackup(event)" style="opacity:0; position:absolute; width:1px; height:1px; z-index:-1;">
 
                 <button onclick="openModal()" class="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5 text-xs sm:text-sm">
                     <i class="fa-solid fa-plus"></i> Nuova Spesa
@@ -206,7 +209,7 @@
         </div>
     </div>
 
-    <!-- Script Logica v9.8 -->
+    <!-- Script Logica v9.9 -->
     <script>
         const defaultExpenses = [
             { id: 1, name: "Abbonamento Palestra (Scaduto test)", amount: 50, frequency: "Mensile", startDate: "2026-07-23" },
@@ -219,32 +222,41 @@
 
         const freqMonths = { "Mensile": 1, "Bimestrale": 2, "Trimestrale": 3, "Semestrale": 6, "Annuale": 12 };
 
+        // Caricamento sicuro con pulizia e sanificazione
         let rawExpenses = defaultExpenses;
         try {
-            const saved = localStorage.getItem('expenses_pro_v9_8') || 
-                          localStorage.getItem('expenses_pro_v9_7') || 
-                          localStorage.getItem('expenses_pro_v9_6');
+            const saved = localStorage.getItem('expenses_pro_v9.9') || 
+                          localStorage.getItem('expenses_pro_v9_8') || 
+                          localStorage.getItem('expenses_pro_v9_7');
             if (saved) {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed) && parsed.length > 0) {
                     rawExpenses = parsed;
                 }
             }
-        } catch (e) { console.error("Errore lettura spese:", e); }
+        } catch (e) { console.error("Errore lettura localStorage:", e); }
 
-        let expenses = rawExpenses.map((item, idx) => ({
-            id: item.id || (Date.now() + idx),
-            name: item.name || "Spesa",
-            amount: !isNaN(parseFloat(item.amount)) ? parseFloat(item.amount) : 0,
-            frequency: freqMonths[item.frequency] ? item.frequency : "Mensile",
-            startDate: (item.startDate && item.startDate.includes('-')) ? item.startDate : "2026-09-01"
-        }));
+        let expenses = rawExpenses.map((item, idx) => {
+            let sDate = item.startDate || item.date || item.activeStartStr || "";
+            if (!sDate || typeof sDate !== 'string' || !sDate.includes('-')) {
+                sDate = formatLocalDate(new Date());
+            } else {
+                sDate = sDate.split('T')[0];
+            }
+            return {
+                id: item.id || (Date.now() + idx),
+                name: item.name || "Spesa",
+                amount: !isNaN(parseFloat(item.amount)) ? parseFloat(item.amount) : 0,
+                frequency: freqMonths[item.frequency] ? item.frequency : "Mensile",
+                startDate: sDate
+            };
+        });
 
         let currentSavings = 0;
         try {
-            const savedSav = localStorage.getItem('current_savings_v9_8') ?? 
-                             localStorage.getItem('current_savings_v9_7') ?? 
-                             localStorage.getItem('current_savings_v9_6');
+            const savedSav = localStorage.getItem('current_savings_v9.9') ?? 
+                             localStorage.getItem('current_savings_v9_8') ?? 
+                             localStorage.getItem('current_savings_v9_7');
             if (savedSav !== null && !isNaN(parseFloat(savedSav))) {
                 currentSavings = parseFloat(savedSav);
             }
@@ -254,8 +266,14 @@
 
         let tgSettings = { token: '', chatId: '' };
         try {
-            tgSettings = JSON.parse(localStorage.getItem('telegram_settings_v9_8') || 
-                                    localStorage.getItem('telegram_settings_v9_7') || '{}');
+            const savedTg = localStorage.getItem('telegram_settings_v9.9') || 
+                            localStorage.getItem('telegram_settings_v9_8');
+            if (savedTg) {
+                const parsed = JSON.parse(savedTg);
+                if (parsed && typeof parsed === 'object') {
+                    tgSettings = { token: parsed.token || '', chatId: parsed.chatId || '' };
+                }
+            }
         } catch (e) { tgSettings = { token: '', chatId: '' }; }
 
         function parseLocalDate(dateStr) {
@@ -313,8 +331,9 @@
         }
 
         function updateSavingsDirect(val) {
-            currentSavings = parseFloat(val) || 0;
-            localStorage.setItem('current_savings_v9_8', currentSavings);
+            currentSavings = parseFloat(val);
+            if (isNaN(currentSavings)) currentSavings = 0;
+            localStorage.setItem('current_savings_v9.9', currentSavings);
             renderApp();
         }
 
@@ -328,18 +347,19 @@
             currentSavings += val;
             document.getElementById('currentSavings').value = currentSavings;
             input.value = '';
-            localStorage.setItem('current_savings_v9_8', currentSavings);
+            localStorage.setItem('current_savings_v9.9', currentSavings);
             renderApp();
         }
 
         function payExpense(index) {
             const item = expenses[index];
+            if (!item) return;
             const metrics = calculateMetrics(item);
 
             if (confirm(`Vuoi registrare il pagamento di "${item.name}" per ${item.amount.toFixed(2)} €?\n\nQuesto scalerà la cifra dai risparmi e rinnoverà la scadenza al prossimo ciclo.`)) {
                 currentSavings = Math.max(0, currentSavings - item.amount);
                 document.getElementById('currentSavings').value = currentSavings;
-                localStorage.setItem('current_savings_v9_8', currentSavings);
+                localStorage.setItem('current_savings_v9.9', currentSavings);
                 
                 expenses[index].startDate = metrics.nextDeadlineStr;
                 renderApp();
@@ -349,59 +369,36 @@
         function resetToDefaults() {
             if (confirm("Vuoi ripristinare le spese di esempio iniziali?")) {
                 expenses = JSON.parse(JSON.stringify(defaultExpenses));
-                localStorage.setItem('expenses_pro_v9_8', JSON.stringify(expenses));
+                localStorage.setItem('expenses_pro_v9.9', JSON.stringify(expenses));
                 currentSavings = 0;
                 document.getElementById('currentSavings').value = 0;
-                localStorage.setItem('current_savings_v9_8', 0);
+                localStorage.setItem('current_savings_v9.9', 0);
                 renderApp();
                 alert("Dati ripristinati con successo!");
             }
         }
 
-        // Esportazione Nativa Mobile (Web Share API per iOS/Android, download fallback per Desktop)
-        async function exportBackup() {
-            const backupData = { expenses, currentSavings };
-            const dataStr = JSON.stringify(backupData, null, 2);
-            const fileName = `backup_piano_${formatLocalDate(new Date())}.json`;
+        // Esportazione Backup (Generazione nativa compatibile con iOS Safari e Desktop)
+        function exportBackup() {
+            try {
+                const backupData = { expenses, currentSavings };
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
+                const dateStr = formatLocalDate(new Date());
+                const fileName = `backup_piano_${dateStr}.json`;
 
-            if (navigator.canShare && navigator.share) {
-                try {
-                    const file = new File([dataStr], fileName, { type: 'application/json' });
-                    if (navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                            files: [file],
-                            title: 'Backup Accantonamenti',
-                            text: 'File di backup del tuo Piano Accantonamenti.'
-                        });
-                        return;
-                    }
-                } catch (err) {
-                    if (err.name !== 'AbortError') console.log('Web Share fallito, ricorro al fallback:', err);
-                    else return;
-                }
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", fileName);
+                downloadAnchor.setAttribute("target", "_blank");
+                document.body.appendChild(downloadAnchor);
+                downloadAnchor.click();
+                downloadAnchor.remove();
+            } catch (e) {
+                alert("Errore durante l'esportazione: " + e.message);
             }
-
-            // Fallback Standard Desktop
-            const blob = new Blob([dataStr], { type: 'application/json;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.href = url;
-            downloadAnchor.download = fileName;
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            setTimeout(() => {
-                document.body.removeChild(downloadAnchor);
-                URL.revokeObjectURL(url);
-            }, 500);
         }
 
-        // Trigger Importazione compatibile iOS Safari
-        function triggerImport() {
-            const input = document.getElementById('importFile');
-            input.value = '';
-            input.click();
-        }
-
+        // Importazione Backup (Lettura file con FileReader)
         function importBackup(event) {
             const file = event.target.files && event.target.files[0];
             if (!file) return;
@@ -410,7 +407,7 @@
             fileReader.onload = function (e) {
                 try {
                     const parsed = JSON.parse(e.target.result);
-                    if (parsed.expenses && Array.isArray(parsed.expenses)) {
+                    if (parsed && parsed.expenses && Array.isArray(parsed.expenses)) {
                         expenses = parsed.expenses.map((item, idx) => ({
                             id: item.id || (Date.now() + idx),
                             name: item.name || "Spesa",
@@ -418,14 +415,15 @@
                             frequency: freqMonths[item.frequency] ? item.frequency : "Mensile",
                             startDate: (item.startDate && item.startDate.includes('-')) ? item.startDate : "2026-09-01"
                         }));
-                        currentSavings = typeof parsed.currentSavings === 'number' ? parsed.currentSavings : 0;
+                        currentSavings = typeof parsed.currentSavings === 'number' ? parsed.currentSavings : (parseFloat(parsed.currentSavings) || 0);
                         document.getElementById('currentSavings').value = currentSavings;
-                        localStorage.setItem('expenses_pro_v9_8', JSON.stringify(expenses));
-                        localStorage.setItem('current_savings_v9_8', currentSavings);
+                        localStorage.setItem('expenses_pro_v9.9', JSON.stringify(expenses));
+                        localStorage.setItem('current_savings_v9.9', currentSavings);
                         renderApp();
                         alert("Backup importato con successo!");
                     } else { alert("Formato file non valido. Assicurati che sia un file JSON di backup."); }
-                } catch (error) { alert("Errore nella lettura del file di backup."); }
+                } catch (error) { alert("Errore nella lettura del file di backup: " + error.message); }
+                event.target.value = '';
             };
             fileReader.readAsText(file, "UTF-8");
         }
@@ -446,13 +444,13 @@
         function saveTelegramSettings() {
             tgSettings.token = document.getElementById('tgToken').value.trim();
             tgSettings.chatId = document.getElementById('tgChatId').value.trim();
-            localStorage.setItem('telegram_settings_v9_8', JSON.stringify(tgSettings));
+            localStorage.setItem('telegram_settings_v9.9', JSON.stringify(tgSettings));
             closeTelegramModal();
             alert("Impostazioni Telegram salvate con successo!");
         }
 
         function sendTelegramMessage(text) {
-            if (!tgSettings.token || !tgSettings.chatId) return;
+            if (!tgSettings.token || !tgSettings.chatId) return Promise.resolve();
             const url = `https://api.telegram.org/bot${tgSettings.token}/sendMessage`;
             return fetch(url, {
                 method: 'POST',
@@ -536,7 +534,7 @@
             if (!tgSettings.token || !tgSettings.chatId) return;
 
             const todayStr = formatLocalDate(new Date());
-            const lastChecked = localStorage.getItem('tg_last_notif_date_v9_8');
+            const lastChecked = localStorage.getItem('tg_last_notif_date_v9.9');
 
             if (lastChecked === todayStr) return;
 
@@ -551,8 +549,8 @@
             if (alertExpenses.length > 0) {
                 let msg = `🚨 *PROMEMORIA ACCANTONAMENTI (Scadenza Domani)*\n\n` + alertExpenses.join('\n') + `\n\n💰 Accantonamento giornaliero consigliato oggi: *${totalDailySum.toFixed(2)} €*`;
                 sendTelegramMessage(msg).then(() => {
-                    localStorage.setItem('tg_last_notif_date_v9_8', todayStr);
-                });
+                    localStorage.setItem('tg_last_notif_date_v9.9', todayStr);
+                }).catch(e => console.error("Errore notifica:", e));
             }
         }
 
@@ -568,15 +566,12 @@
                 let totalTargetToday = 0;
                 let runningFullAmountSum = 0;
 
-                const processedItems = expenses.map((item) => {
+                expenses.forEach((item, index) => {
                     const metrics = calculateMetrics(item);
                     totalDailySum += metrics.dailyQuota;
                     totalMonthlySum += metrics.monthlyQuota;
                     totalTargetToday += metrics.targetTodayItem;
-                    return { item, metrics };
-                });
 
-                processedItems.forEach(({ item, metrics }, index) => {
                     runningFullAmountSum += item.amount;
                     const isCovered = currentSavings >= runningFullAmountSum;
 
@@ -652,7 +647,7 @@
                     globalText.innerText = `Disavanzo (${diffGlobal.toFixed(2)} €)`;
                 }
 
-                localStorage.setItem('expenses_pro_v9_8', JSON.stringify(expenses));
+                localStorage.setItem('expenses_pro_v9.9', JSON.stringify(expenses));
                 checkDailyNotifications(totalDailySum);
             } catch (err) { console.error("Errore critico in renderApp:", err); }
         }
@@ -684,12 +679,22 @@
         function handleFormSubmit(e) {
             e.preventDefault();
             const editIndex = parseInt(document.getElementById('editIndex').value);
+            const nameVal = document.getElementById('name').value.trim();
+            const amountVal = parseFloat(document.getElementById('amount').value);
+            const freqVal = document.getElementById('frequency').value;
+            const dateVal = document.getElementById('startDate').value;
+
+            if (!nameVal || isNaN(amountVal) || amountVal <= 0 || !dateVal) {
+                alert("Compila tutti i campi correttamente.");
+                return;
+            }
+
             const expenseData = {
                 id: (editIndex >= 0 && expenses[editIndex]) ? expenses[editIndex].id : Date.now(),
-                name: document.getElementById('name').value,
-                amount: parseFloat(document.getElementById('amount').value) || 0,
-                frequency: document.getElementById('frequency').value,
-                startDate: document.getElementById('startDate').value || formatLocalDate(new Date())
+                name: nameVal,
+                amount: amountVal,
+                frequency: freqVal,
+                startDate: dateVal
             };
 
             if (editIndex >= 0 && expenses[editIndex]) {
@@ -705,7 +710,8 @@
         function editExpense(index) { openModal(index); }
 
         function deleteExpense(index) {
-            if (confirm("Eliminare questa spesa?")) {
+            if (!expenses[index]) return;
+            if (confirm(`Eliminare la spesa "${expenses[index].name}"?`)) {
                 expenses.splice(index, 1);
                 renderApp();
             }
