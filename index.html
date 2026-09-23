@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piano Accantonamento Pro</title>
+    <title>Piano Accantonamento Pro v9.7</title>
     <!-- Ottimizzazioni per Web App iOS / Safari -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -18,28 +18,31 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen pb-12">
 
-    <!-- Header -->
-    <header class="bg-indigo-700 shadow-md py-6 px-4 sm:px-8 mb-6">
-        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div>
-                <h1 class="text-xl sm:text-3xl font-bold text-white flex items-center gap-2">
+    <!-- Header Ottimizzato per Mobile -->
+    <header class="bg-indigo-700 shadow-md py-5 px-4 sm:px-8 mb-6">
+        <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="text-center md:text-left">
+                <h1 class="text-xl sm:text-3xl font-bold text-white flex items-center justify-center md:justify-start gap-2">
                     <i class="fa-solid fa-vault"></i> Piano Accantonamento Pro
                 </h1>
                 <p class="text-indigo-200 text-xs sm:text-sm mt-1">Controllo scadenze e copertura finanziaria</p>
             </div>
-            <!-- Pulsanti Azione Header -->
-            <div class="flex items-center gap-2 flex-wrap justify-center w-full sm:w-auto">
-                <button onclick="openTelegramModal()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5 text-xs sm:text-sm" title="Configura Telegram">
-                    <i class="fa-brands fa-telegram"></i> Telegram
+            <!-- Pulsanti Azione Header (Responsive e compatti) -->
+            <div class="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap w-full md:w-auto">
+                <button onclick="openTelegramModal()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Configura Telegram">
+                    <i class="fa-brands fa-telegram"></i> <span class="hidden sm:inline">Telegram</span>
                 </button>
-                <button onclick="exportBackup()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5 text-xs sm:text-sm" title="Esporta Backup">
-                    <i class="fa-solid fa-download"></i> Esporta
+                <button onclick="resetToDefaults()" class="bg-amber-600 hover:bg-amber-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Ripristina Dati">
+                    <i class="fa-solid fa-rotate-right"></i> <span class="hidden sm:inline">Reset</span>
                 </button>
-                <label class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5 text-xs sm:text-sm cursor-pointer" title="Importa Backup">
-                    <i class="fa-solid fa-upload"></i> Importa
+                <button onclick="exportBackup()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Esporta Backup">
+                    <i class="fa-solid fa-download"></i> <span class="hidden sm:inline">Esporta</span>
+                </button>
+                <label class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm cursor-pointer" title="Importa Backup">
+                    <i class="fa-solid fa-upload"></i> <span class="hidden sm:inline">Importa</span>
                     <input type="file" id="importFile" accept=".json" onchange="importBackup(event)" class="hidden">
                 </label>
-                <button onclick="openModal()" class="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold px-4 py-2 rounded-xl shadow transition flex items-center gap-2 text-xs sm:text-sm">
+                <button onclick="openModal()" class="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5 text-xs sm:text-sm">
                     <i class="fa-solid fa-plus"></i> Nuova Spesa
                 </button>
             </div>
@@ -109,7 +112,7 @@
         <!-- Table Card -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="p-5 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                <h2 class="text-base sm:text-lg font-bold text-slate-800">Piano Spese (ordinate per scadenza)</h2>
+                <h2 class="text-base sm:text-lg font-bold text-slate-800">Piano Spese (ordinate per urgenza)</h2>
                 <span class="text-xs bg-indigo-50 text-indigo-700 font-semibold px-3 py-1 rounded-full">Aggiornato in tempo reale</span>
             </div>
             <div class="overflow-x-auto [-webkit-overflow-scrolling:touch]">
@@ -121,9 +124,9 @@
                             <th class="py-3 px-3 font-semibold">Frequenza</th>
                             <th class="py-3 px-3 font-semibold">Data Inizio</th>
                             <th class="py-3 px-3 font-semibold">Prossima Scadenza</th>
-                            <th class="py-3 px-3 font-semibold">Mancanti</th>
+                            <th class="py-3 px-3 font-semibold">Stato Scadenza</th>
                             <th class="py-3 px-3 font-semibold">Quota/G</th>
-                            <th class="py-3 px-3 font-semibold">Stato</th>
+                            <th class="py-3 px-3 font-semibold">Copertura</th>
                             <th class="py-3 px-3 font-semibold text-center">Azioni</th>
                         </tr>
                     </thead>
@@ -187,9 +190,12 @@
                     <label class="block text-sm font-medium text-slate-600 mb-1">Chat ID</label>
                     <input type="text" id="tgChatId" placeholder="es. 987654321" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500">
                 </div>
-                <div class="flex justify-between items-center pt-2">
-                    <button type="button" onclick="sendTestTelegram()" class="px-4 py-2 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 font-semibold text-xs transition">Invia Test</button>
-                    <div class="space-x-2">
+                <div class="flex flex-col gap-2 pt-2 border-t border-slate-100">
+                    <div class="flex justify-between items-center gap-1">
+                        <button type="button" onclick="sendTestTelegram()" class="px-3 py-2 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 font-semibold text-xs transition">Invia Test Semplice</button>
+                        <button type="button" onclick="forceCheckDeadlineNotification()" class="px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-semibold text-xs transition" title="Forza invio promemoria scadenze">Testa Promemoria</button>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
                         <button type="button" onclick="closeTelegramModal()" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 font-medium text-xs transition">Annulla</button>
                         <button type="button" onclick="saveTelegramSettings()" class="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-medium text-xs shadow transition">Salva</button>
                     </div>
@@ -198,29 +204,75 @@
         </div>
     </div>
 
-    <!-- Script Logica -->
+    <!-- Script Logica v9.7 -->
     <script>
         const defaultExpenses = [
-            { id: 1, name: "Assicurazione Auto", amount: 211, frequency: "Semestrale", startDate: "2026-08-27" },
-            { id: 2, name: "Piscina", amount: 85, frequency: "Mensile", startDate: "2026-09-01" },
+            { id: 1, name: "Abbonamento Palestra (Scaduto test)", amount: 50, frequency: "Mensile", startDate: "2026-07-23" },
+            { id: 2, name: "Assicurazione Auto", amount: 211, frequency: "Semestrale", startDate: "2026-08-27" },
             { id: 3, name: "SIM Telefonica", amount: 7, frequency: "Mensile", startDate: "2026-09-02" },
             { id: 4, name: "Bolletta Luce/Gas", amount: 160, frequency: "Bimestrale", startDate: "2026-09-22" },
             { id: 5, name: "Bollo Scooter", amount: 19.39, frequency: "Annuale", startDate: "2026-02-28" },
             { id: 6, name: "Manutenzione Caldaia", amount: 110, frequency: "Annuale", startDate: "2026-09-30" }
         ];
 
-        let expenses = JSON.parse(localStorage.getItem('expenses_pro_v9_2')) || defaultExpenses;
-        let currentSavings = parseFloat(localStorage.getItem('current_savings_v9_2')) || 0;
-        document.getElementById('currentSavings').value = currentSavings;
-
-        let tgSettings = JSON.parse(localStorage.getItem('telegram_settings_v9_2')) || { token: '', chatId: '' };
-
         const freqMonths = { "Mensile": 1, "Bimestrale": 2, "Trimestrale": 3, "Semestrale": 6, "Annuale": 12 };
 
-        // Helper per parsing sicuro date in ora locale (evita sfasamenti UTC)
+        let rawExpenses = defaultExpenses;
+        try {
+            const saved = localStorage.getItem('expenses_pro_v9_7') || 
+                          localStorage.getItem('expenses_pro_v9_6') || 
+                          localStorage.getItem('expenses_pro_v9_5') || 
+                          localStorage.getItem('expenses_pro_v9_4');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    rawExpenses = parsed;
+                }
+            }
+        } catch (e) {
+            console.error("Errore lettura spese:", e);
+        }
+
+        let expenses = rawExpenses.map((item, idx) => ({
+            id: item.id || (Date.now() + idx),
+            name: item.name || "Spesa",
+            amount: !isNaN(parseFloat(item.amount)) ? parseFloat(item.amount) : 0,
+            frequency: freqMonths[item.frequency] ? item.frequency : "Mensile",
+            startDate: (item.startDate && item.startDate.includes('-')) ? item.startDate : "2026-09-01"
+        }));
+
+        let currentSavings = 0;
+        try {
+            const savedSav = localStorage.getItem('current_savings_v9_7') ?? 
+                             localStorage.getItem('current_savings_v9_6') ?? 
+                             localStorage.getItem('current_savings_v9_5') ?? 
+                             localStorage.getItem('current_savings_v9_4');
+            if (savedSav !== null && !isNaN(parseFloat(savedSav))) {
+                currentSavings = parseFloat(savedSav);
+            }
+        } catch (e) {
+            currentSavings = 0;
+        }
+
+        document.getElementById('currentSavings').value = currentSavings;
+
+        let tgSettings = { token: '', chatId: '' };
+        try {
+            tgSettings = JSON.parse(localStorage.getItem('telegram_settings_v9_7') || 
+                                    localStorage.getItem('telegram_settings_v9_6') || 
+                                    localStorage.getItem('telegram_settings_v9_5') || '{}');
+        } catch (e) {
+            tgSettings = { token: '', chatId: '' };
+        }
+
         function parseLocalDate(dateStr) {
-            const parts = dateStr.split('-');
-            return new Date(parts[0], parts[1] - 1, parts[2]);
+            try {
+                if (!dateStr || typeof dateStr !== 'string' || !dateStr.includes('-')) return new Date();
+                const parts = dateStr.split('-');
+                return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            } catch (e) {
+                return new Date();
+            }
         }
 
         function formatLocalDate(dateObj) {
@@ -240,24 +292,24 @@
             let deadlineObj = new Date(startDateObj.getTime());
             deadlineObj.setMonth(deadlineObj.getMonth() + monthsToAdd);
 
-            while (deadlineObj <= today) {
-                startDateObj.setMonth(startDateObj.getMonth() + monthsToAdd);
-                deadlineObj.setMonth(deadlineObj.getMonth() + monthsToAdd);
-            }
-
             const activeStartStr = formatLocalDate(startDateObj);
             const nextDeadlineStr = formatLocalDate(deadlineObj);
 
             const totalPeriodDays = Math.max(1, Math.round((deadlineObj - startDateObj) / (1000 * 60 * 60 * 24)));
             const elapsedDays = Math.max(0, Math.round((today - startDateObj) / (1000 * 60 * 60 * 24)));
             
-            const targetTodayItem = Math.min(item.amount, (item.amount * elapsedDays) / totalPeriodDays);
+            let targetTodayItem = 0;
+            if (today >= deadlineObj) {
+                targetTodayItem = item.amount;
+            } else if (today >= startDateObj) {
+                targetTodayItem = Math.min(item.amount, (item.amount * elapsedDays) / totalPeriodDays);
+            }
             
             const monthlyQuota = item.amount / monthsToAdd;
             const dailyQuota = monthlyQuota / 30.5;
 
             const diffTime = deadlineObj - today;
-            const daysLeft = Math.max(0, Math.round(diffTime / (1000 * 60 * 60 * 24)));
+            const daysLeft = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
             return {
                 activeStartStr,
@@ -271,7 +323,7 @@
 
         function updateSavingsDirect(val) {
             currentSavings = parseFloat(val) || 0;
-            localStorage.setItem('current_savings_v9_2', currentSavings);
+            localStorage.setItem('current_savings_v9_7', currentSavings);
             renderApp();
         }
 
@@ -285,7 +337,7 @@
             currentSavings += val;
             document.getElementById('currentSavings').value = currentSavings;
             input.value = '';
-            localStorage.setItem('current_savings_v9_2', currentSavings);
+            localStorage.setItem('current_savings_v9_7', currentSavings);
             renderApp();
         }
 
@@ -296,9 +348,22 @@
             if (confirm(`Vuoi registrare il pagamento di "${item.name}" per ${item.amount.toFixed(2)} €?\n\nQuesto scalerà la cifra dai risparmi e rinnoverà la scadenza al prossimo ciclo.`)) {
                 currentSavings = Math.max(0, currentSavings - item.amount);
                 document.getElementById('currentSavings').value = currentSavings;
-                localStorage.setItem('current_savings_v9_2', currentSavings);
+                localStorage.setItem('current_savings_v9_7', currentSavings);
+                
                 expenses[index].startDate = metrics.nextDeadlineStr;
                 renderApp();
+            }
+        }
+
+        function resetToDefaults() {
+            if (confirm("Vuoi ripristinare le spese di esempio iniziali?")) {
+                expenses = JSON.parse(JSON.stringify(defaultExpenses));
+                localStorage.setItem('expenses_pro_v9_7', JSON.stringify(expenses));
+                currentSavings = 0;
+                document.getElementById('currentSavings').value = 0;
+                localStorage.setItem('current_savings_v9_7', 0);
+                renderApp();
+                alert("Dati ripristinati con successo!");
             }
         }
 
@@ -318,7 +383,7 @@
         function saveTelegramSettings() {
             tgSettings.token = document.getElementById('tgToken').value.trim();
             tgSettings.chatId = document.getElementById('tgChatId').value.trim();
-            localStorage.setItem('telegram_settings_v9_2', JSON.stringify(tgSettings));
+            localStorage.setItem('telegram_settings_v9_7', JSON.stringify(tgSettings));
             closeTelegramModal();
             alert("Impostazioni Telegram salvate con successo!");
         }
@@ -326,11 +391,11 @@
         function sendTelegramMessage(text) {
             if (!tgSettings.token || !tgSettings.chatId) return;
             const url = `https://api.telegram.org/bot${tgSettings.token}/sendMessage`;
-            fetch(url, {
+            return fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: tgSettings.chatId, text: text, parse_mode: 'Markdown' })
-            }).catch(err => console.error("Errore invio Telegram:", err));
+            });
         }
 
         function sendTestTelegram() {
@@ -357,27 +422,74 @@
             .catch(err => alert("Errore di connessione: " + err.message));
         }
 
-        // Controllo automatico scadenze a 1 giorno (notifica il giorno prima)
-        function checkDailyNotifications(totalDailySum) {
-            if (!tgSettings.token || !tgSettings.chatId) return;
+        function forceCheckDeadlineNotification() {
+            const token = document.getElementById('tgToken').value.trim();
+            const chatId = document.getElementById('tgChatId').value.trim();
+            if (!token || !chatId) {
+                alert("Inserisci prima Token e Chat ID nel modulo sopra.");
+                return;
+            }
 
-            const todayStr = formatLocalDate(new Date());
-            const lastChecked = localStorage.getItem('tg_last_notif_date_v9_2');
-
-            if (lastChecked === todayStr) return; // Inviato già oggi
+            let totalDailySum = 0;
+            expenses.forEach(item => {
+                totalDailySum += calculateMetrics(item).dailyQuota;
+            });
 
             let alertExpenses = [];
             expenses.forEach(item => {
                 const metrics = calculateMetrics(item);
-                if (metrics.daysLeft === 1) { // 1 giorno alla scadenza = il giorno prima!
+                if (metrics.daysLeft === 1) {
+                    alertExpenses.push(`- *${item.name}*: ${item.amount.toFixed(2)} € (Scade domani!)`);
+                } else if (metrics.daysLeft < 0) {
+                    alertExpenses.push(`- *${item.name}*: ${item.amount.toFixed(2)} € (Scaduta da ${Math.abs(metrics.daysLeft)}g!)`);
+                }
+            });
+
+            if (alertExpenses.length === 0) {
+                alert("Nessuna spesa in scadenza domani o già scaduta al momento.");
+                return;
+            }
+
+            let msg = `🚨 *PROMEMORIA ACCANTONAMENTI*\n\n` + alertExpenses.join('\n') + `\n\n💰 Accantonamento giornaliero consigliato oggi: *${totalDailySum.toFixed(2)} €*`;
+
+            const testUrl = `https://api.telegram.org/bot${token}/sendMessage`;
+            fetch(testUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'Markdown' })
+            })
+            .then(async res => {
+                const data = await res.json();
+                if (res.ok && data.ok) {
+                    alert("Notifica inviata con successo su Telegram!");
+                } else {
+                    alert(`Errore Telegram: ${data.description || 'Controlla Token e Chat ID'}`);
+                }
+            })
+            .catch(err => alert("Errore di connessione: " + err.message));
+        }
+
+        function checkDailyNotifications(totalDailySum) {
+            if (!tgSettings.token || !tgSettings.chatId) return;
+
+            const todayStr = formatLocalDate(new Date());
+            const lastChecked = localStorage.getItem('tg_last_notif_date_v9_7');
+
+            if (lastChecked === todayStr) return;
+
+            let alertExpenses = [];
+            expenses.forEach(item => {
+                const metrics = calculateMetrics(item);
+                if (metrics.daysLeft === 1) { 
                     alertExpenses.push(`- *${item.name}*: ${item.amount.toFixed(2)} € (Scade domani!)`);
                 }
             });
 
             if (alertExpenses.length > 0) {
                 let msg = `🚨 *PROMEMORIA ACCANTONAMENTI (Scadenza Domani)*\n\n` + alertExpenses.join('\n') + `\n\n💰 Accantonamento giornaliero consigliato oggi: *${totalDailySum.toFixed(2)} €*`;
-                sendTelegramMessage(msg);
-                localStorage.setItem('tg_last_notif_date_v9_2', todayStr);
+                sendTelegramMessage(msg).then(() => {
+                    localStorage.setItem('tg_last_notif_date_v9_7', todayStr);
+                });
             }
         }
 
@@ -407,8 +519,8 @@
                             expenses = parsed.expenses;
                             currentSavings = typeof parsed.currentSavings === 'number' ? parsed.currentSavings : 0;
                             document.getElementById('currentSavings').value = currentSavings;
-                            localStorage.setItem('expenses_pro_v9_2', JSON.stringify(expenses));
-                            localStorage.setItem('current_savings_v9_2', currentSavings);
+                            localStorage.setItem('expenses_pro_v9_7', JSON.stringify(expenses));
+                            localStorage.setItem('current_savings_v9_7', currentSavings);
                             renderApp();
                             alert("Backup importato con successo!");
                         } else { alert("Formato file non valido."); }
@@ -418,97 +530,113 @@
         }
 
         function renderApp() {
-            expenses.sort((a, b) => calculateMetrics(a).daysLeft - calculateMetrics(b).daysLeft);
+            try {
+                expenses.sort((a, b) => calculateMetrics(a).daysLeft - calculateMetrics(b).daysLeft);
 
-            const tbody = document.getElementById('expenseTableBody');
-            tbody.innerHTML = '';
+                const tbody = document.getElementById('expenseTableBody');
+                tbody.innerHTML = '';
 
-            let totalDailySum = 0;
-            let totalMonthlySum = 0;
-            let totalTargetToday = 0;
-            let runningFullAmountSum = 0;
+                let totalDailySum = 0;
+                let totalMonthlySum = 0;
+                let totalTargetToday = 0;
+                let runningFullAmountSum = 0;
 
-            const processedItems = expenses.map((item) => {
-                const metrics = calculateMetrics(item);
-                totalDailySum += metrics.dailyQuota;
-                totalMonthlySum += metrics.monthlyQuota;
-                totalTargetToday += metrics.targetTodayItem;
-                return { item, metrics };
-            });
+                const processedItems = expenses.map((item) => {
+                    const metrics = calculateMetrics(item);
+                    totalDailySum += metrics.dailyQuota;
+                    totalMonthlySum += metrics.monthlyQuota;
+                    totalTargetToday += metrics.targetTodayItem;
+                    return { item, metrics };
+                });
 
-            processedItems.forEach(({ item, metrics }, index) => {
-                runningFullAmountSum += item.amount;
-                const isCovered = currentSavings >= runningFullAmountSum;
+                processedItems.forEach(({ item, metrics }, index) => {
+                    runningFullAmountSum += item.amount;
+                    const isCovered = currentSavings >= runningFullAmountSum;
 
-                let badgeExpiry = "bg-emerald-50 text-emerald-700 border-emerald-100";
-                if (metrics.daysLeft <= 3) badgeExpiry = "bg-rose-50 text-rose-700 border-rose-100 font-bold animate-pulse";
-                else if (metrics.daysLeft <= 30) badgeExpiry = "bg-amber-50 text-amber-700 border-amber-100";
+                    let badgeExpiry = "";
+                    let daysText = "";
+                    if (metrics.daysLeft < 0) {
+                        badgeExpiry = "bg-rose-50 text-rose-700 border-rose-200 font-bold animate-pulse";
+                        daysText = `Scaduta da ${Math.abs(metrics.daysLeft)}g`;
+                    } else if (metrics.daysLeft === 0) {
+                        badgeExpiry = "bg-rose-50 text-rose-700 border-rose-200 font-bold animate-pulse";
+                        daysText = `Scade oggi`;
+                    } else if (metrics.daysLeft <= 3) {
+                        badgeExpiry = "bg-amber-50 text-amber-700 border-amber-200 font-bold";
+                        daysText = `Tra ${metrics.daysLeft}g`;
+                    } else {
+                        badgeExpiry = "bg-slate-50 text-slate-700 border-slate-200";
+                        daysText = `Tra ${metrics.daysLeft}g`;
+                    }
 
-                let badgeCover = isCovered 
-                    ? '<span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">COPERTO</span>'
-                    : '<span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">SCOPERTO</span>';
+                    let badgeCover = isCovered 
+                        ? '<span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">COPERTO</span>'
+                        : '<span class="px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">SCOPERTO</span>';
 
-                const startDateFormatted = metrics.activeStartStr.split('-').reverse().join('/');
-                const nextDeadlineFormatted = metrics.nextDeadlineStr.split('-').reverse().join('/');
+                    const startDateFormatted = metrics.activeStartStr.split('-').reverse().join('/');
+                    const nextDeadlineFormatted = metrics.nextDeadlineStr.split('-').reverse().join('/');
 
-                const row = document.createElement('tr');
-                row.className = "hover:bg-slate-50/80 transition";
-                row.innerHTML = `
-                    <td class="py-3 px-3 font-semibold text-slate-800">${item.name}</td>
-                    <td class="py-3 px-3 font-medium text-slate-600">${Number(item.amount).toFixed(2)} €</td>
-                    <td class="py-3 px-3 text-slate-500">${item.frequency}</td>
-                    <td class="py-3 px-3 text-slate-600">${startDateFormatted}</td>
-                    <td class="py-3 px-3 text-slate-600 font-medium">${nextDeadlineFormatted}</td>
-                    <td class="py-3 px-3">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border ${badgeExpiry}">
-                            ${metrics.daysLeft}g
-                        </span>
-                    </td>
-                    <td class="py-3 px-3 font-bold text-indigo-600">${metrics.dailyQuota.toFixed(2)} €</td>
-                    <td class="py-3 px-3">${badgeCover}</td>
-                    <td class="py-3 px-3 text-center space-x-1 whitespace-nowrap">
-                        <button onclick="payExpense(${index})" class="px-2 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold text-xs transition inline-flex items-center gap-1" title="Paga">
-                            <i class="fa-solid fa-check"></i> Paga
-                        </button>
-                        <button onclick="editExpense(${index})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition inline-flex items-center justify-center" title="Modifica">
-                            <i class="fa-solid fa-pen"></i>
-                        </button>
-                        <button onclick="deleteExpense(${index})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition inline-flex items-center justify-center" title="Elimina">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-slate-50/80 transition";
+                    row.innerHTML = `
+                        <td class="py-3 px-3 font-semibold text-slate-800">${item.name}</td>
+                        <td class="py-3 px-3 font-medium text-slate-600">${Number(item.amount).toFixed(2)} €</td>
+                        <td class="py-3 px-3 text-slate-500">${item.frequency}</td>
+                        <td class="py-3 px-3 text-slate-600">${startDateFormatted}</td>
+                        <td class="py-3 px-3 text-slate-600 font-medium">${nextDeadlineFormatted}</td>
+                        <td class="py-3 px-3">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold border ${badgeExpiry}">
+                                ${daysText}
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 font-bold text-indigo-600">${metrics.dailyQuota.toFixed(2)} €</td>
+                        <td class="py-3 px-3">${badgeCover}</td>
+                        <td class="py-3 px-3 text-center space-x-1 whitespace-nowrap">
+                            <button onclick="payExpense(${index})" class="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold text-xs transition inline-flex items-center gap-1" title="Registra Pagamento e Rinnova">
+                                <i class="fa-solid fa-check"></i> Paga
+                            </button>
+                            <button onclick="editExpense(${index})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition inline-flex items-center justify-center" title="Modifica">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteExpense(${index})" class="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition inline-flex items-center justify-center" title="Elimina">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
 
-            document.getElementById('totalDaily').innerText = totalDailySum.toFixed(2) + ' €';
-            document.getElementById('totalMonthly').innerText = totalMonthlySum.toFixed(2) + ' €';
-            document.getElementById('totalCount').innerText = expenses.length;
-            document.getElementById('targetToday').innerText = totalTargetToday.toFixed(2) + ' €';
+                document.getElementById('totalDaily').innerText = totalDailySum.toFixed(2) + ' €';
+                document.getElementById('totalMonthly').innerText = totalMonthlySum.toFixed(2) + ' €';
+                document.getElementById('totalCount').innerText = expenses.length;
+                document.getElementById('targetToday').innerText = totalTargetToday.toFixed(2) + ' €';
 
-            const diffGlobal = currentSavings - totalTargetToday;
-            const globalCard = document.getElementById('globalStatusCard');
-            const globalText = document.getElementById('globalStatusText');
-            
-            if (diffGlobal >= 0) {
-                globalCard.className = "p-4 rounded-xl border bg-emerald-50 border-emerald-200 flex flex-col justify-center";
-                globalText.className = "text-base sm:text-lg font-bold mt-1 text-emerald-700";
-                globalText.innerText = `In Sicurezza (+${diffGlobal.toFixed(2)} €)`;
-            } else {
-                globalCard.className = "p-4 rounded-xl border bg-rose-50 border-rose-200 flex flex-col justify-center";
-                globalText.className = "text-base sm:text-lg font-bold mt-1 text-rose-700";
-                globalText.innerText = `Disavanzo (${diffGlobal.toFixed(2)} €)`;
+                const diffGlobal = currentSavings - totalTargetToday;
+                const globalCard = document.getElementById('globalStatusCard');
+                const globalText = document.getElementById('globalStatusText');
+                
+                if (diffGlobal >= 0) {
+                    globalCard.className = "p-4 rounded-xl border bg-emerald-50 border-emerald-200 flex flex-col justify-center";
+                    globalText.className = "text-base sm:text-lg font-bold mt-1 text-emerald-700";
+                    globalText.innerText = `In Sicurezza (+${diffGlobal.toFixed(2)} €)`;
+                } else {
+                    globalCard.className = "p-4 rounded-xl border bg-rose-50 border-rose-200 flex flex-col justify-center";
+                    globalText.className = "text-base sm:text-lg font-bold mt-1 text-rose-700";
+                    globalText.innerText = `Disavanzo (${diffGlobal.toFixed(2)} €)`;
+                }
+
+                localStorage.setItem('expenses_pro_v9_7', JSON.stringify(expenses));
+                checkDailyNotifications(totalDailySum);
+            } catch (err) {
+                console.error("Errore critico in renderApp:", err);
             }
-
-            localStorage.setItem('expenses_pro_v9_2', JSON.stringify(expenses));
-            checkDailyNotifications(totalDailySum);
         }
 
         function openModal(index = -1) {
             document.getElementById('expenseModal').classList.remove('hidden');
             document.getElementById('expenseModal').classList.add('flex');
             
-            if (index >= 0) {
+            if (index >= 0 && expenses[index]) {
                 document.getElementById('modalTitle').innerText = "Modifica Spesa";
                 document.getElementById('editIndex').value = index;
                 document.getElementById('name').value = expenses[index].name;
@@ -532,14 +660,14 @@
             e.preventDefault();
             const editIndex = parseInt(document.getElementById('editIndex').value);
             const expenseData = {
-                id: editIndex >= 0 ? expenses[editIndex].id : Date.now(),
+                id: (editIndex >= 0 && expenses[editIndex]) ? expenses[editIndex].id : Date.now(),
                 name: document.getElementById('name').value,
-                amount: parseFloat(document.getElementById('amount').value),
+                amount: parseFloat(document.getElementById('amount').value) || 0,
                 frequency: document.getElementById('frequency').value,
-                startDate: document.getElementById('startDate').value
+                startDate: document.getElementById('startDate').value || formatLocalDate(new Date())
             };
 
-            if (editIndex >= 0) {
+            if (editIndex >= 0 && expenses[editIndex]) {
                 expenses[editIndex] = expenseData;
             } else {
                 expenses.push(expenseData);
