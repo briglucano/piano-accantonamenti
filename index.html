@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piano Accantonamento Pro v10.0</title>
+    <title>Piano Accantonamento Pro v10.1</title>
     <!-- Ottimizzazioni per Web App iOS / Safari -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -224,7 +224,7 @@
         </div>
     </div>
 
-    <!-- Script Logica v10.0 -->
+    <!-- Script Logica v10.1 -->
     <script>
         const defaultExpenses = [
             { id: 1, name: "Abbonamento Palestra (Scaduto test)", amount: 50, frequency: "Mensile", startDate: "2026-07-23" },
@@ -240,9 +240,9 @@
         // Caricamento con retrocompatibilità
         let rawExpenses = defaultExpenses;
         try {
-            const saved = localStorage.getItem('expenses_pro_v10.0') || 
-                          localStorage.getItem('expenses_pro_v9.9') || 
-                          localStorage.getItem('expenses_pro_v9_8');
+            const saved = localStorage.getItem('expenses_pro_v10.1') || 
+                          localStorage.getItem('expenses_pro_v10.0') || 
+                          localStorage.getItem('expenses_pro_v9.9');
             if (saved) {
                 const parsed = JSON.parse(saved);
                 if (Array.isArray(parsed) && parsed.length > 0) rawExpenses = parsed;
@@ -267,9 +267,9 @@
 
         let currentSavings = 0;
         try {
-            const savedSav = localStorage.getItem('current_savings_v10.0') ?? 
-                             localStorage.getItem('current_savings_v9.9') ?? 
-                             localStorage.getItem('current_savings_v9_8');
+            const savedSav = localStorage.getItem('current_savings_v10.1') ?? 
+                             localStorage.getItem('current_savings_v10.0') ?? 
+                             localStorage.getItem('current_savings_v9.9');
             if (savedSav !== null && !isNaN(parseFloat(savedSav))) currentSavings = parseFloat(savedSav);
         } catch (e) { currentSavings = 0; }
 
@@ -277,8 +277,8 @@
 
         let tgSettings = { token: '', chatId: '' };
         try {
-            const savedTg = localStorage.getItem('telegram_settings_v10.0') || 
-                            localStorage.getItem('telegram_settings_v9.9');
+            const savedTg = localStorage.getItem('telegram_settings_v10.1') || 
+                            localStorage.getItem('telegram_settings_v10.0');
             if (savedTg) {
                 const parsed = JSON.parse(savedTg);
                 if (parsed && typeof parsed === 'object') {
@@ -337,7 +337,7 @@
         function updateSavingsDirect(val) {
             currentSavings = parseFloat(val);
             if (isNaN(currentSavings)) currentSavings = 0;
-            localStorage.setItem('current_savings_v10.0', currentSavings);
+            localStorage.setItem('current_savings_v10.1', currentSavings);
             renderApp();
         }
 
@@ -351,7 +351,7 @@
             currentSavings += val;
             document.getElementById('currentSavings').value = currentSavings;
             input.value = '';
-            localStorage.setItem('current_savings_v10.0', currentSavings);
+            localStorage.setItem('current_savings_v10.1', currentSavings);
             renderApp();
         }
 
@@ -363,7 +363,7 @@
             if (confirm(`Vuoi registrare il pagamento di "${item.name}" per ${item.amount.toFixed(2)} €?\n\nQuesto scalerà la cifra dai risparmi e rinnoverà la scadenza al prossimo ciclo.`)) {
                 currentSavings = Math.max(0, currentSavings - item.amount);
                 document.getElementById('currentSavings').value = currentSavings;
-                localStorage.setItem('current_savings_v10.0', currentSavings);
+                localStorage.setItem('current_savings_v10.1', currentSavings);
                 expenses[index].startDate = metrics.nextDeadlineStr;
                 renderApp();
             }
@@ -372,51 +372,39 @@
         function resetToDefaults() {
             if (confirm("Vuoi ripristinare le spese di esempio iniziali?")) {
                 expenses = JSON.parse(JSON.stringify(defaultExpenses));
-                localStorage.setItem('expenses_pro_v10.0', JSON.stringify(expenses));
+                localStorage.setItem('expenses_pro_v10.1', JSON.stringify(expenses));
                 currentSavings = 0;
                 document.getElementById('currentSavings').value = 0;
-                localStorage.setItem('current_savings_v10.0', 0);
+                localStorage.setItem('current_savings_v10.1', 0);
                 renderApp();
                 alert("Dati ripristinati con successo!");
             }
         }
 
-        // Esportazione Robusta (iOS Share Sheet + Blob Download + Modal Text Fallback)
-        function exportBackup() {
+        // Esportazione Ottimizzata per iOS (Share Sheet nativo per file .json o fallback)
+        async function exportBackup() {
             try {
                 const backupData = { expenses, currentSavings };
                 const jsonText = JSON.stringify(backupData, null, 2);
                 const fileName = `backup_piano_${formatLocalDate(new Date())}.json`;
+                const file = new File([jsonText], fileName, { type: 'application/json' });
 
-                // 1. Tenta prima la Web Share API (Perfetta per iPhone / Safari iOS)
-                if (navigator.share) {
+                // Se supportato (iPhone/Safari o dispositivi mobili), apre il menu Condivisione nativo di iOS
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                     try {
-                        const file = new File([jsonText], fileName, { type: 'application/json' });
-                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                            navigator.share({
-                                files: [file],
-                                title: 'Backup Accantonamenti',
-                                text: 'File di backup del Piano Accantonamenti.'
-                            }).catch(err => {
-                                if (err.name !== 'AbortError') fallbackDownload(jsonText, fileName);
-                            });
-                            return;
-                        }
-                    } catch (e) {
-                        console.warn("Share file non supportato, proseguo con download...", e);
+                        await navigator.share({
+                            files: [file],
+                            title: 'Backup Accantonamenti',
+                            text: 'File di backup del tuo Piano Accantonamenti.'
+                        });
+                        return;
+                    } catch (err) {
+                        if (err.name === 'AbortError') return; // Utente ha annullato
                     }
                 }
 
-                // 2. Download Standard via Blob (Desktop & Android)
-                fallbackDownload(jsonText, fileName);
-            } catch (err) {
-                openBackupTextModal(JSON.stringify({ expenses, currentSavings }, null, 2));
-            }
-        }
-
-        function fallbackDownload(jsonText, fileName) {
-            try {
-                const blob = new Blob([jsonText], { type: 'application/json' });
+                // Fallback classico per Desktop / Browser standard tramite Blob
+                const blob = new Blob([jsonText], { type: 'application/json;charset=utf-8;' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
@@ -426,9 +414,10 @@
                 setTimeout(() => {
                     document.body.removeChild(a);
                     URL.revokeObjectURL(url);
-                }, 500);
+                }, 1000);
             } catch (err) {
-                openBackupTextModal(jsonText);
+                // Se tutto fallisce, apre il modal di emergenza con il testo copiabile
+                openBackupTextModal(JSON.stringify({ expenses, currentSavings }, null, 2));
             }
         }
 
@@ -477,8 +466,8 @@
                         }));
                         currentSavings = typeof parsed.currentSavings === 'number' ? parsed.currentSavings : (parseFloat(parsed.currentSavings) || 0);
                         document.getElementById('currentSavings').value = currentSavings;
-                        localStorage.setItem('expenses_pro_v10.0', JSON.stringify(expenses));
-                        localStorage.setItem('current_savings_v10.0', currentSavings);
+                        localStorage.setItem('expenses_pro_v10.1', JSON.stringify(expenses));
+                        localStorage.setItem('current_savings_v10.1', currentSavings);
                         renderApp();
                         alert("Backup importato con successo!");
                     } else { alert("Formato file non valido."); }
@@ -504,7 +493,7 @@
         function saveTelegramSettings() {
             tgSettings.token = document.getElementById('tgToken').value.trim();
             tgSettings.chatId = document.getElementById('tgChatId').value.trim();
-            localStorage.setItem('telegram_settings_v10.0', JSON.stringify(tgSettings));
+            localStorage.setItem('telegram_settings_v10.1', JSON.stringify(tgSettings));
             closeTelegramModal();
             alert("Impostazioni Telegram salvate con successo!");
         }
@@ -582,7 +571,7 @@
             if (!tgSettings.token || !tgSettings.chatId) return;
 
             const todayStr = formatLocalDate(new Date());
-            const lastChecked = localStorage.getItem('tg_last_notif_date_v10.0');
+            const lastChecked = localStorage.getItem('tg_last_notif_date_v10.1');
 
             if (lastChecked === todayStr) return;
 
@@ -595,7 +584,7 @@
             if (alertExpenses.length > 0) {
                 let msg = `🚨 *PROMEMORIA ACCANTONAMENTI (Scadenza Domani)*\n\n` + alertExpenses.join('\n') + `\n\n💰 Accantonamento giornaliero consigliato oggi: *${totalDailySum.toFixed(2)} €*`;
                 sendTelegramMessage(msg).then(() => {
-                    localStorage.setItem('tg_last_notif_date_v10.0', todayStr);
+                    localStorage.setItem('tg_last_notif_date_v10.1', todayStr);
                 }).catch(e => console.error("Errore notifica:", e));
             }
         }
@@ -693,7 +682,7 @@
                     globalText.innerText = `Disavanzo (${diffGlobal.toFixed(2)} €)`;
                 }
 
-                localStorage.setItem('expenses_pro_v10.0', JSON.stringify(expenses));
+                localStorage.setItem('expenses_pro_v10.1', JSON.stringify(expenses));
                 checkDailyNotifications(totalDailySum);
             } catch (err) { console.error("Errore critico in renderApp:", err); }
         }
