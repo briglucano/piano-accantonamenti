@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Piano Accantonamento Pro v9.9</title>
+    <title>Piano Accantonamento Pro v10.0</title>
     <!-- Ottimizzazioni per Web App iOS / Safari -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -18,7 +18,7 @@
 </head>
 <body class="bg-slate-100 text-slate-800 font-sans antialiased min-h-screen pb-12">
 
-    <!-- Header Ottimizzato per Mobile -->
+    <!-- Header Ottimizzato Mobile -->
     <header class="bg-indigo-700 shadow-md py-5 px-4 sm:px-8 mb-6">
         <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="text-center md:text-left">
@@ -27,7 +27,7 @@
                 </h1>
                 <p class="text-indigo-200 text-xs sm:text-sm mt-1">Controllo scadenze e copertura finanziaria</p>
             </div>
-            <!-- Pulsanti Azione Header con Icone Corrette -->
+            <!-- Pulsanti Azione Header -->
             <div class="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap w-full md:w-auto">
                 <button onclick="openTelegramModal()" class="bg-sky-600 hover:bg-sky-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Configura Telegram">
                     <i class="fa-brands fa-telegram"></i> <span class="hidden sm:inline">Telegram</span>
@@ -36,16 +36,16 @@
                     <i class="fa-solid fa-rotate-right"></i> <span class="hidden sm:inline">Reset</span>
                 </button>
                 
-                <!-- Esporta Backup (Download da App a Dispositivo) -->
-                <button onclick="exportBackup()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Esporta Backup (Scarica File)">
+                <!-- Esporta Backup -->
+                <button onclick="exportBackup()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Esporta Backup (Salva File)">
                     <i class="fa-solid fa-file-export"></i> <span class="hidden sm:inline">Esporta</span>
                 </button>
                 
-                <!-- Importa Backup (Upload da Dispositivo ad App) -->
-                <label for="importFile" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm cursor-pointer" title="Importa Backup (Carica File)">
+                <!-- Importa Backup -->
+                <button onclick="triggerImport()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-2 rounded-xl shadow transition flex items-center gap-1 text-xs sm:text-sm" title="Importa Backup (Carica File)">
                     <i class="fa-solid fa-file-import"></i> <span class="hidden sm:inline">Importa</span>
-                </label>
-                <input type="file" id="importFile" accept=".json,application/json,text/plain" onchange="importBackup(event)" style="opacity:0; position:absolute; width:1px; height:1px; z-index:-1;">
+                </button>
+                <input type="file" id="importFile" accept=".json,application/json,text/plain" onchange="importBackup(event)" class="hidden">
 
                 <button onclick="openModal()" class="bg-white text-indigo-700 hover:bg-indigo-50 font-semibold px-3 py-2 rounded-xl shadow transition flex items-center gap-1.5 text-xs sm:text-sm">
                     <i class="fa-solid fa-plus"></i> Nuova Spesa
@@ -209,7 +209,22 @@
         </div>
     </div>
 
-    <!-- Script Logica v9.9 -->
+    <!-- Modal Fallback Backup Testuale -->
+    <div id="backupTextModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 relative space-y-4">
+            <h3 class="text-lg font-bold text-slate-800">Copia Backup Dati</h3>
+            <p class="text-xs text-slate-500">Se il download diretto non parte sul tuo dispositivo, copia questo testo e salvalo nelle tue Note:</p>
+            <textarea id="backupTextarea" rows="6" readonly class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-700 focus:outline-none"></textarea>
+            <div class="flex justify-end gap-2">
+                <button onclick="copyBackupText()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1">
+                    <i class="fa-solid fa-copy"></i> Copia negli Appunti
+                </button>
+                <button onclick="closeBackupTextModal()" class="px-4 py-2 border border-slate-200 text-slate-600 text-xs font-medium rounded-xl hover:bg-slate-50 transition">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Logica v10.0 -->
     <script>
         const defaultExpenses = [
             { id: 1, name: "Abbonamento Palestra (Scaduto test)", amount: 50, frequency: "Mensile", startDate: "2026-07-23" },
@@ -222,19 +237,17 @@
 
         const freqMonths = { "Mensile": 1, "Bimestrale": 2, "Trimestrale": 3, "Semestrale": 6, "Annuale": 12 };
 
-        // Caricamento sicuro con pulizia e sanificazione
+        // Caricamento con retrocompatibilità
         let rawExpenses = defaultExpenses;
         try {
-            const saved = localStorage.getItem('expenses_pro_v9.9') || 
-                          localStorage.getItem('expenses_pro_v9_8') || 
-                          localStorage.getItem('expenses_pro_v9_7');
+            const saved = localStorage.getItem('expenses_pro_v10.0') || 
+                          localStorage.getItem('expenses_pro_v9.9') || 
+                          localStorage.getItem('expenses_pro_v9_8');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    rawExpenses = parsed;
-                }
+                if (Array.isArray(parsed) && parsed.length > 0) rawExpenses = parsed;
             }
-        } catch (e) { console.error("Errore lettura localStorage:", e); }
+        } catch (e) { console.error("Errore localStorage:", e); }
 
         let expenses = rawExpenses.map((item, idx) => {
             let sDate = item.startDate || item.date || item.activeStartStr || "";
@@ -254,20 +267,18 @@
 
         let currentSavings = 0;
         try {
-            const savedSav = localStorage.getItem('current_savings_v9.9') ?? 
-                             localStorage.getItem('current_savings_v9_8') ?? 
-                             localStorage.getItem('current_savings_v9_7');
-            if (savedSav !== null && !isNaN(parseFloat(savedSav))) {
-                currentSavings = parseFloat(savedSav);
-            }
+            const savedSav = localStorage.getItem('current_savings_v10.0') ?? 
+                             localStorage.getItem('current_savings_v9.9') ?? 
+                             localStorage.getItem('current_savings_v9_8');
+            if (savedSav !== null && !isNaN(parseFloat(savedSav))) currentSavings = parseFloat(savedSav);
         } catch (e) { currentSavings = 0; }
 
         document.getElementById('currentSavings').value = currentSavings;
 
         let tgSettings = { token: '', chatId: '' };
         try {
-            const savedTg = localStorage.getItem('telegram_settings_v9.9') || 
-                            localStorage.getItem('telegram_settings_v9_8');
+            const savedTg = localStorage.getItem('telegram_settings_v10.0') || 
+                            localStorage.getItem('telegram_settings_v9.9');
             if (savedTg) {
                 const parsed = JSON.parse(savedTg);
                 if (parsed && typeof parsed === 'object') {
@@ -320,20 +331,13 @@
             const diffTime = deadlineObj - today;
             const daysLeft = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-            return {
-                activeStartStr,
-                nextDeadlineStr,
-                daysLeft,
-                dailyQuota,
-                monthlyQuota,
-                targetTodayItem
-            };
+            return { activeStartStr, nextDeadlineStr, daysLeft, dailyQuota, monthlyQuota, targetTodayItem };
         }
 
         function updateSavingsDirect(val) {
             currentSavings = parseFloat(val);
             if (isNaN(currentSavings)) currentSavings = 0;
-            localStorage.setItem('current_savings_v9.9', currentSavings);
+            localStorage.setItem('current_savings_v10.0', currentSavings);
             renderApp();
         }
 
@@ -347,7 +351,7 @@
             currentSavings += val;
             document.getElementById('currentSavings').value = currentSavings;
             input.value = '';
-            localStorage.setItem('current_savings_v9.9', currentSavings);
+            localStorage.setItem('current_savings_v10.0', currentSavings);
             renderApp();
         }
 
@@ -359,8 +363,7 @@
             if (confirm(`Vuoi registrare il pagamento di "${item.name}" per ${item.amount.toFixed(2)} €?\n\nQuesto scalerà la cifra dai risparmi e rinnoverà la scadenza al prossimo ciclo.`)) {
                 currentSavings = Math.max(0, currentSavings - item.amount);
                 document.getElementById('currentSavings').value = currentSavings;
-                localStorage.setItem('current_savings_v9.9', currentSavings);
-                
+                localStorage.setItem('current_savings_v10.0', currentSavings);
                 expenses[index].startDate = metrics.nextDeadlineStr;
                 renderApp();
             }
@@ -369,36 +372,93 @@
         function resetToDefaults() {
             if (confirm("Vuoi ripristinare le spese di esempio iniziali?")) {
                 expenses = JSON.parse(JSON.stringify(defaultExpenses));
-                localStorage.setItem('expenses_pro_v9.9', JSON.stringify(expenses));
+                localStorage.setItem('expenses_pro_v10.0', JSON.stringify(expenses));
                 currentSavings = 0;
                 document.getElementById('currentSavings').value = 0;
-                localStorage.setItem('current_savings_v9.9', 0);
+                localStorage.setItem('current_savings_v10.0', 0);
                 renderApp();
                 alert("Dati ripristinati con successo!");
             }
         }
 
-        // Esportazione Backup (Generazione nativa compatibile con iOS Safari e Desktop)
+        // Esportazione Robusta (iOS Share Sheet + Blob Download + Modal Text Fallback)
         function exportBackup() {
             try {
                 const backupData = { expenses, currentSavings };
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(backupData, null, 2));
-                const dateStr = formatLocalDate(new Date());
-                const fileName = `backup_piano_${dateStr}.json`;
+                const jsonText = JSON.stringify(backupData, null, 2);
+                const fileName = `backup_piano_${formatLocalDate(new Date())}.json`;
 
-                const downloadAnchor = document.createElement('a');
-                downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute("download", fileName);
-                downloadAnchor.setAttribute("target", "_blank");
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                downloadAnchor.remove();
-            } catch (e) {
-                alert("Errore durante l'esportazione: " + e.message);
+                // 1. Tenta prima la Web Share API (Perfetta per iPhone / Safari iOS)
+                if (navigator.share) {
+                    try {
+                        const file = new File([jsonText], fileName, { type: 'application/json' });
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            navigator.share({
+                                files: [file],
+                                title: 'Backup Accantonamenti',
+                                text: 'File di backup del Piano Accantonamenti.'
+                            }).catch(err => {
+                                if (err.name !== 'AbortError') fallbackDownload(jsonText, fileName);
+                            });
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn("Share file non supportato, proseguo con download...", e);
+                    }
+                }
+
+                // 2. Download Standard via Blob (Desktop & Android)
+                fallbackDownload(jsonText, fileName);
+            } catch (err) {
+                openBackupTextModal(JSON.stringify({ expenses, currentSavings }, null, 2));
             }
         }
 
-        // Importazione Backup (Lettura file con FileReader)
+        function fallbackDownload(jsonText, fileName) {
+            try {
+                const blob = new Blob([jsonText], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 500);
+            } catch (err) {
+                openBackupTextModal(jsonText);
+            }
+        }
+
+        function openBackupTextModal(jsonText) {
+            document.getElementById('backupTextarea').value = jsonText;
+            document.getElementById('backupTextModal').classList.remove('hidden');
+            document.getElementById('backupTextModal').classList.add('flex');
+        }
+
+        function closeBackupTextModal() {
+            document.getElementById('backupTextModal').classList.remove('flex');
+            document.getElementById('backupTextModal').classList.add('hidden');
+        }
+
+        function copyBackupText() {
+            const textarea = document.getElementById('backupTextarea');
+            textarea.select();
+            navigator.clipboard.writeText(textarea.value).then(() => {
+                alert("Backup copiato negli appunti!");
+                closeBackupTextModal();
+            }).catch(() => alert("Seleziona e copia manualmente il testo dalla finestra."));
+        }
+
+        // Importazione Nativa
+        function triggerImport() {
+            const input = document.getElementById('importFile');
+            input.value = '';
+            input.click();
+        }
+
         function importBackup(event) {
             const file = event.target.files && event.target.files[0];
             if (!file) return;
@@ -413,22 +473,22 @@
                             name: item.name || "Spesa",
                             amount: !isNaN(parseFloat(item.amount)) ? parseFloat(item.amount) : 0,
                             frequency: freqMonths[item.frequency] ? item.frequency : "Mensile",
-                            startDate: (item.startDate && item.startDate.includes('-')) ? item.startDate : "2026-09-01"
+                            startDate: (item.startDate && item.startDate.includes('-')) ? item.startDate : formatLocalDate(new Date())
                         }));
                         currentSavings = typeof parsed.currentSavings === 'number' ? parsed.currentSavings : (parseFloat(parsed.currentSavings) || 0);
                         document.getElementById('currentSavings').value = currentSavings;
-                        localStorage.setItem('expenses_pro_v9.9', JSON.stringify(expenses));
-                        localStorage.setItem('current_savings_v9.9', currentSavings);
+                        localStorage.setItem('expenses_pro_v10.0', JSON.stringify(expenses));
+                        localStorage.setItem('current_savings_v10.0', currentSavings);
                         renderApp();
                         alert("Backup importato con successo!");
-                    } else { alert("Formato file non valido. Assicurati che sia un file JSON di backup."); }
-                } catch (error) { alert("Errore nella lettura del file di backup: " + error.message); }
+                    } else { alert("Formato file non valido."); }
+                } catch (error) { alert("Errore lettura file backup: " + error.message); }
                 event.target.value = '';
             };
             fileReader.readAsText(file, "UTF-8");
         }
 
-        // Gestione Telegram UI & API
+        // Gestione Telegram
         function openTelegramModal() {
             document.getElementById('tgToken').value = tgSettings.token || '';
             document.getElementById('tgChatId').value = tgSettings.chatId || '';
@@ -444,7 +504,7 @@
         function saveTelegramSettings() {
             tgSettings.token = document.getElementById('tgToken').value.trim();
             tgSettings.chatId = document.getElementById('tgChatId').value.trim();
-            localStorage.setItem('telegram_settings_v9.9', JSON.stringify(tgSettings));
+            localStorage.setItem('telegram_settings_v10.0', JSON.stringify(tgSettings));
             closeTelegramModal();
             alert("Impostazioni Telegram salvate con successo!");
         }
@@ -474,11 +534,8 @@
             })
             .then(async res => {
                 const data = await res.json();
-                if (res.ok && data.ok) {
-                    alert("Messaggio di test inviato con successo su Telegram!");
-                } else {
-                    alert(`Errore Telegram: ${data.description || 'Controlla Token e Chat ID'}`);
-                }
+                if (res.ok && data.ok) alert("Messaggio di test inviato con successo su Telegram!");
+                else alert(`Errore Telegram: ${data.description || 'Controlla Token e Chat ID'}`);
             })
             .catch(err => alert("Errore di connessione: " + err.message));
         }
@@ -492,18 +549,13 @@
             }
 
             let totalDailySum = 0;
-            expenses.forEach(item => {
-                totalDailySum += calculateMetrics(item).dailyQuota;
-            });
+            expenses.forEach(item => totalDailySum += calculateMetrics(item).dailyQuota);
 
             let alertExpenses = [];
             expenses.forEach(item => {
                 const metrics = calculateMetrics(item);
-                if (metrics.daysLeft === 1) {
-                    alertExpenses.push(`- *${item.name}*: ${item.amount.toFixed(2)} € (Scade domani!)`);
-                } else if (metrics.daysLeft < 0) {
-                    alertExpenses.push(`- *${item.name}*: ${item.amount.toFixed(2)} € (Scaduta da ${Math.abs(metrics.daysLeft)}g!)`);
-                }
+                if (metrics.daysLeft === 1) alertExpenses.push(`- *${item.name}*: ${item.amount.toFixed(2)} € (Scade domani!)`);
+                else if (metrics.daysLeft < 0) alertExpenses.push(`- *${item.name}*: ${item.amount.toFixed(2)} € (Scaduta da ${Math.abs(metrics.daysLeft)}g!)`);
             });
 
             if (alertExpenses.length === 0) {
@@ -513,19 +565,15 @@
 
             let msg = `🚨 *PROMEMORIA ACCANTONAMENTI*\n\n` + alertExpenses.join('\n') + `\n\n💰 Accantonamento giornaliero consigliato oggi: *${totalDailySum.toFixed(2)} €*`;
 
-            const testUrl = `https://api.telegram.org/bot${token}/sendMessage`;
-            fetch(testUrl, {
+            fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'Markdown' })
             })
             .then(async res => {
                 const data = await res.json();
-                if (res.ok && data.ok) {
-                    alert("Notifica inviata con successo su Telegram!");
-                } else {
-                    alert(`Errore Telegram: ${data.description || 'Controlla Token e Chat ID'}`);
-                }
+                if (res.ok && data.ok) alert("Notifica inviata con successo su Telegram!");
+                else alert(`Errore Telegram: ${data.description || 'Controlla Token e Chat ID'}`);
             })
             .catch(err => alert("Errore di connessione: " + err.message));
         }
@@ -534,22 +582,20 @@
             if (!tgSettings.token || !tgSettings.chatId) return;
 
             const todayStr = formatLocalDate(new Date());
-            const lastChecked = localStorage.getItem('tg_last_notif_date_v9.9');
+            const lastChecked = localStorage.getItem('tg_last_notif_date_v10.0');
 
             if (lastChecked === todayStr) return;
 
             let alertExpenses = [];
             expenses.forEach(item => {
                 const metrics = calculateMetrics(item);
-                if (metrics.daysLeft === 1) { 
-                    alertExpenses.push(`- *${item.name}*: ${item.amount.toFixed(2)} € (Scade domani!)`);
-                }
+                if (metrics.daysLeft === 1) alertExpenses.push(`- *${item.name}*: ${item.amount.toFixed(2)} € (Scade domani!)`);
             });
 
             if (alertExpenses.length > 0) {
                 let msg = `🚨 *PROMEMORIA ACCANTONAMENTI (Scadenza Domani)*\n\n` + alertExpenses.join('\n') + `\n\n💰 Accantonamento giornaliero consigliato oggi: *${totalDailySum.toFixed(2)} €*`;
                 sendTelegramMessage(msg).then(() => {
-                    localStorage.setItem('tg_last_notif_date_v9.9', todayStr);
+                    localStorage.setItem('tg_last_notif_date_v10.0', todayStr);
                 }).catch(e => console.error("Errore notifica:", e));
             }
         }
@@ -647,7 +693,7 @@
                     globalText.innerText = `Disavanzo (${diffGlobal.toFixed(2)} €)`;
                 }
 
-                localStorage.setItem('expenses_pro_v9.9', JSON.stringify(expenses));
+                localStorage.setItem('expenses_pro_v10.0', JSON.stringify(expenses));
                 checkDailyNotifications(totalDailySum);
             } catch (err) { console.error("Errore critico in renderApp:", err); }
         }
